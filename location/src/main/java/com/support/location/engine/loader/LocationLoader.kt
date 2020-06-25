@@ -50,7 +50,7 @@ abstract class LocationLoader(
         return false
     }
 
-    protected fun notifyLocationUpdated(location: Location, listener: OnLocationUpdateListener) {
+    protected open fun notifyLocationUpdated(location: Location, listener: OnLocationUpdateListener) {
         mLastLocation = location to System.currentTimeMillis()
         listener.onLocationUpdated(location)
     }

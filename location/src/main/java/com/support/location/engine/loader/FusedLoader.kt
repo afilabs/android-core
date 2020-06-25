@@ -2,6 +2,7 @@ package com.support.location.engine.loader
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.location.Location
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -15,6 +16,7 @@ class FusedLoader(
         options: LocationOptions = LocationOptions.DEFAULT
 ) : LocationLoader(context, next, options) {
 
+    private var mLastGot: Location? = null
     private val mCallbacks = hashMapOf<OnLocationUpdateListener, LocationCallback>()
     private val mFusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
@@ -30,13 +32,26 @@ class FusedLoader(
         if (canReuseLastLocation(listener)) return
 
         mFusedLocationClient.lastLocation.addOnSuccessListener {
-            if (it != null) listener.onLocationUpdated(it)
-            else doRequestLoadLast(listener)
+            if (it != null && isDiff(mLastGot, it)) {
+                mLastGot = it
+                listener.onLocationUpdated(it)
+            } else doRequestLoadLast(listener)
         }.addOnCanceledListener {
             nextLoadLast(listener)
         }.addOnFailureListener {
             nextLoadLast(listener)
         }
+    }
+
+    private fun isDiff(lastGot: Location?, it: Location): Boolean {
+        if (it.latitude == 0.0 && it.longitude == 0.0) return false
+        if (lastGot == null) return true
+        return lastGot.latitude != it.latitude || lastGot.longitude != it.longitude
+    }
+
+    override fun notifyLocationUpdated(location: Location, listener: OnLocationUpdateListener) {
+        super.notifyLocationUpdated(location, listener)
+        mLastGot = location
     }
 
     @SuppressLint("MissingPermission")
