@@ -3,8 +3,8 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 apply from: 'versions.gradle'
 
-apply plugin: 'com.github.dcendents.android-maven'
-group='com.github.lahongphat'
+//apply plugin: 'com.github.dcendents.android-maven'
+//group='com.github.lahongphat'
 
 android {
     compileSdkVersion 29
@@ -49,6 +49,6 @@ dependencies {
     implementation 'io.michaelrocks:libphonenumber-android:8.10.14'
 
     testImplementation "junit:junit:${versions.junit}"
-    androidTestImplementation "androidx.test.ext:junit:${versions.junitext}"
+    androidTestImplementation "androidx.test.ext:junit:${versions.junitest}"
     androidTestImplementation "androidx.test.espresso:espresso-core:${versions.espresso}"
 }
