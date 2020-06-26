@@ -8,7 +8,6 @@ import android.location.LocationManager
 import android.os.Bundle
 import com.support.location.engine.LocationOptions
 import com.support.location.engine.OnLocationUpdateListener
-import com.support.location.isGPSEnabled
 
 abstract class HardwareLoader(
         context: Context,
@@ -29,7 +28,7 @@ abstract class HardwareLoader(
         if (canReuseLastLocation(listener)) return
 
         if (!mLocationManager.isProviderEnabled(provider)) {
-            doNextIfNeeded(listener)
+            nextLoadLast(listener)
             return
         }
 
@@ -50,12 +49,6 @@ abstract class HardwareLoader(
 
         mLocationManager.removeUpdates(mLastLocationCallback!!)
         mLocationManager.requestLocationUpdates(provider, options.interval, options.minDistance, mLastLocationCallback!!)
-    }
-
-    private fun doNextIfNeeded(listener: OnLocationUpdateListener) {
-        if (!context.isGPSEnabled) {
-            nextLoadLast(listener)
-        }
     }
 
     override fun getLastLocation(function: OnLocationUpdateListener) {

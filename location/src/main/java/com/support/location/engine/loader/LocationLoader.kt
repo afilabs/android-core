@@ -15,13 +15,19 @@ abstract class LocationLoader(
 
     companion object {
         fun getDefault(context: Context, options: LocationOptions = LocationOptions.DEFAULT): LocationLoader {
-            return FusedLoader(context, NetworkLoader(context, GPSLoader(context, options = options), options), options)
+            return FusedLoader(context,
+                    NetworkLoader(context,
+                            GPSLoader(context,
+                                    IpLocationLoader(context, options = options),
+                                    options), options), options)
         }
 
         private const val TIMEOUT = 1000L
     }
 
     private var mLastLocation: Pair<Location, Long>? = null
+
+    val lastLocation get() = mLastLocation?.first
 
     fun notifyDefaultIfGPSNotAvailable(listener: OnLocationUpdateListener): Boolean {
         if (!context.isGPSEnabled) {
@@ -39,7 +45,7 @@ abstract class LocationLoader(
         else next.loadLastLocation(listener)
     }
 
-    protected fun canReuseLastLocation(listener: OnLocationUpdateListener): Boolean {
+    protected open fun canReuseLastLocation(listener: OnLocationUpdateListener): Boolean {
         if (mLastLocation != null) {
             val last = mLastLocation!!
             if (System.currentTimeMillis() - last.second <= TIMEOUT) {

@@ -9,6 +9,7 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.support.location.engine.LocationOptions
 import com.support.location.engine.OnLocationUpdateListener
+import com.support.location.isGPSEnabled
 
 class FusedLoader(
         context: Context,
@@ -56,6 +57,10 @@ class FusedLoader(
 
     @SuppressLint("MissingPermission")
     private fun doRequestLoadLast(listener: OnLocationUpdateListener) {
+        if (!context.isGPSEnabled) {
+            nextLoadLast(listener)
+            return
+        }
         mFusedLocationClient.requestLocationUpdates(mLocationRequest, object : LocationCallback() {
             override fun onLocationResult(p0: LocationResult?) {
                 mFusedLocationClient.removeLocationUpdates(this)
