@@ -21,11 +21,7 @@ class IpLocationLoader(context: Context, next: LocationLoader? = null, options: 
     private val mService = IpLocationService()
 
     override fun loadLastLocation(listener: OnLocationUpdateListener) {
-        val lastLocation = this.lastLocation
-        if (lastLocation != null) {
-            listener.onLocationUpdated(lastLocation)
-            return
-        }
+        if (canReuseLastLocation(listener)) return
         mExecutor.execute {
             try {
                 val hostInfo = mService.get()
@@ -35,6 +31,14 @@ class IpLocationLoader(context: Context, next: LocationLoader? = null, options: 
                 listener.onLocationUpdated(options.default.location)
             }
         }
+    }
+
+    override fun canReuseLastLocation(listener: OnLocationUpdateListener): Boolean {
+        val last = lastLocation ?: return false
+        val (location, time) = last
+        if ((System.currentTimeMillis() - time) / 3600000 > 1) return false
+        listener.onLocationUpdated(location)
+        return true
     }
 
     override fun contains(listener: OnLocationUpdateListener): Boolean {

@@ -27,7 +27,7 @@ abstract class LocationLoader(
 
     private var mLastLocation: Pair<Location, Long>? = null
 
-    val lastLocation get() = mLastLocation?.first
+    val lastLocation get() = mLastLocation
 
     fun notifyDefaultIfGPSNotAvailable(listener: OnLocationUpdateListener): Boolean {
         if (!context.isGPSEnabled) {
