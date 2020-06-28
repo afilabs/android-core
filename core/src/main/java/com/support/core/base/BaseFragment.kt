@@ -18,6 +18,15 @@ abstract class BaseFragment(contentLayoutId: Int) : Fragment(contentLayoutId), R
 
     override val localStore: LocalStore by lazyNone { LocalStore() }
 
+    private var mViewLocalStoreOwner: LocalStoreOwner? = null
+    private val viewLocalStoreOwner: LocalStoreOwner
+        get() {
+            if (mViewLocalStoreOwner == null) mViewLocalStoreOwner = object : LocalStoreOwner {
+                override val localStore: LocalStore = LocalStore()
+            }
+            return mViewLocalStoreOwner!!
+        }
+
     open val visibleOwner: LifecycleOwner by lazyNone {
         VisibleLifecycleOwner(this)
     }
@@ -33,8 +42,15 @@ abstract class BaseFragment(contentLayoutId: Int) : Fragment(contentLayoutId), R
     override fun onDestroyView() {
         super.onDestroyView()
         visibleRegistry.destroy()
-        localStore.clear()
         mResultRegistry.clear()
+
+        mViewLocalStoreOwner?.localStore?.clear()
+        mViewLocalStoreOwner = null
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        localStore.clear()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
