@@ -5,10 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.net.Uri
-import androidx.core.net.toFile
 import com.support.core.Inject
 import com.support.core.extension.tryCall
-import java.io.File
 import java.io.FileNotFoundException
 
 
@@ -28,7 +26,9 @@ class FileScale(
         val newPath = if (cacheInGallery) fileCache.saveToGallery(bmp) else fileCache.saveToCache(bmp)
         bmp.recycle()
         bitmap.recycle()
-//        if (removeOriginal) tryCall { FileUtils.getPath(context, uri)?.also { File(it).delete() } }
+        if (removeOriginal) tryCall {
+            context.contentResolver.delete(uri, null, null)
+        }
         return newPath
     }
 
