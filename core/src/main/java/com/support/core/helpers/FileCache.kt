@@ -2,6 +2,7 @@ package com.support.core.helpers
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.media.MediaScannerConnection
 import android.os.Environment
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
@@ -14,12 +15,12 @@ class FileCache(private val context: Context, private val folderName: String) {
     }
 
     fun saveToCache(it: Bitmap, quality: Int = 80): String {
-        val folder = onCreateCacheFolder(folderName).apply { mkdirs() }
+        val folder = getOrCreateCache(folderName)
         return doSave(it, quality, folder)
     }
 
     fun saveToGallery(it: Bitmap, quality: Int = 80): String {
-        val folder = onCreateGalleryFolder(folderName).apply { mkdirs() }
+        val folder = getOrCreateExternal(folderName)
         return doSave(it, quality, folder)
     }
 
@@ -30,6 +31,14 @@ class FileCache(private val context: Context, private val folderName: String) {
             it.compress(Bitmap.CompressFormat.JPEG, quality, out)
         }
         return file.path
+    }
+
+    private fun getOrCreateExternal(folderName: String): File {
+        val file = onCreateGalleryFolder(folderName)
+        val exist = file.exists()
+        file.mkdirs()
+        if (!exist) MediaScannerConnection.scanFile(context, arrayOf(file.path), arrayOf("image/*")) { _, _ -> }
+        return file
     }
 
     private fun onCreateGalleryFolder(folderName: String): File {
@@ -45,10 +54,12 @@ class FileCache(private val context: Context, private val folderName: String) {
         return folder
     }
 
-    private fun onCreateCacheFolder(folderName: String): File {
-        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                == PermissionChecker.PERMISSION_GRANTED) return File("${context.externalCacheDir}/$folderName")
-        return File("${context.cacheDir}/$folderName")
+    private fun getOrCreateCache(folderName: String): File {
+        val folder = if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                == PermissionChecker.PERMISSION_GRANTED) File("${context.externalCacheDir}/$folderName")
+        else File("${context.cacheDir}/$folderName")
+        folder.mkdirs()
+        return folder
     }
 
 }
