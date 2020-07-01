@@ -49,7 +49,7 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
             })
         resultLife.onInstantSuccessResult(101) {
             try {
-                AppExecutors.diskIO.execute { fileScale.execute(imageURI!!, true, true) }
+                AppExecutors.diskIO.execute { fileScale.execute(imageURI!!, true, false) }
             } catch (e: Exception) {
                 e.printStackTrace()
             }

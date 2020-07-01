@@ -19,8 +19,8 @@ class FileScale(
         private val fileCache: FileCache
 ) {
     companion object {
-        const val MAX_WIDTH = 1280
-        const val MAX_HEIGHT = 720
+        const val MAX_WIDTH = 1920
+        const val MAX_HEIGHT = 1080
     }
 
     fun execute(uri: Uri, cacheInGallery: Boolean = false, removeOriginal: Boolean = false): String {
@@ -40,13 +40,13 @@ class FileScale(
         val exif: ExifInterface?
 
         if (Build.VERSION.SDK_INT > 23) {
-            val ims = context.contentResolver.openInputStream(uri) ?: return null
             bitmap = try {
+                val ims = context.contentResolver.openInputStream(uri) ?: return null
                 BitmapFactory.decodeStream(ims)
             } catch (e: FileNotFoundException) {
                 return null
             }
-            exif = ExifInterface(ims)
+            exif = context.contentResolver.openInputStream(uri)?.let { ExifInterface(it) }
         } else {
             bitmap = FileUtils.getPath(context, uri)?.let { BitmapFactory.decodeFile(it) }
                     ?: return null
