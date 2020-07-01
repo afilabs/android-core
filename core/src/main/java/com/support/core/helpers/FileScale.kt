@@ -28,7 +28,7 @@ class FileScale(
         val newPath = if (cacheInGallery) fileCache.saveToGallery(bmp) else fileCache.saveToCache(bmp)
         bmp.recycle()
         bitmap.recycle()
-        if (removeOriginal) tryCall { FileUtils.getPath(context, uri)?.also { File(it).delete() } }
+//        if (removeOriginal) tryCall { FileUtils.getPath(context, uri)?.also { File(it).delete() } }
         return newPath
     }
 
