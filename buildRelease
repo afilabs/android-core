@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+chmod +x ./gradlew
+
+echo "\n"
+echo "************** Build release core module ********************"
+./gradlew :core:assembleRelease
+
+echo "\n"
+echo "************** Build release location module ********************"
+./gradlew :location:assembleRelease
+
+echo "\n"
+echo "************** Publish core module to packages ********************"
+./gradlew :core:publish
+
+echo "\n"
+echo "************** Publish location module to packages ********************"
+./gradlew :location:publish
