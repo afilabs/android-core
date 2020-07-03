@@ -48,6 +48,15 @@ fun <T> tryCall(function: () -> T): Pair<T?, Throwable?> {
     }
 }
 
+fun catching(function: () -> Unit): Throwable? {
+    return try {
+        function()
+        null
+    } catch (e: Throwable) {
+        e
+    }
+}
+
 class Refer<T> : Disposable {
     private var mData: T? = null
 

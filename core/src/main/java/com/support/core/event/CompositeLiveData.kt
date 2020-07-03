@@ -32,7 +32,7 @@ class CompositeLiveData<T> : MediatorLiveData<T>() {
             source: LocalEvent<S>,
             function: (S) -> Unit
     ) {
-        addSource(source, Observer(function))
+        addSource(source, Observer { it?.also(function) })
     }
 
     @MainThread

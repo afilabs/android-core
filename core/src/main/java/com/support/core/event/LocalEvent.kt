@@ -23,6 +23,10 @@ class LocalEvent<T> : Event<T> {
         post(value)
     }
 
+    fun clearValue() {
+        mValue = null
+    }
+
     @SuppressLint("RestrictedApi")
     fun post(value: T? = null) {
         ArchTaskExecutor.getInstance().executeOnMainThread { doPost(value) }
@@ -43,11 +47,7 @@ class LocalEvent<T> : Event<T> {
     }
 
     fun observeNotNull(owner: LifecycleOwner, function: (T) -> Unit) {
-        observe(owner, Observer(function))
-    }
-
-    fun observeNotNull(owner: LifecycleOwner, observer: Observer<T>) {
-        observe(owner, observer)
+        observe(owner, Observer { it?.also(function) })
     }
 
     fun observe(owner: LifecycleOwner, observer: Observer<T>) {
@@ -68,7 +68,7 @@ class LocalEvent<T> : Event<T> {
     }
 
     fun observeForeverNotNull(function: (T) -> Unit) {
-        observeForever(Observer(function))
+        observeForever(Observer { it?.also(function) })
     }
 
     fun removeObserver(observer: Observer<T>) {

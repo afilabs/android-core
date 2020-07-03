@@ -1,6 +1,8 @@
 package com.support.core
 
 import androidx.arch.core.executor.ArchTaskExecutor
+import com.support.core.executors.InstantArchTaskExecutor
+import com.support.core.executors.InstantTaskExecutors
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
 

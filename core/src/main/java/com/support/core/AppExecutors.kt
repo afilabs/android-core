@@ -2,7 +2,6 @@ package com.support.core
 
 import android.os.Handler
 import android.os.Looper
-import androidx.arch.core.executor.ArchTaskExecutor
 import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -18,30 +17,59 @@ interface TaskExecutors {
     val isOnMainThread: Boolean
 }
 
-class AppExecutors : TaskExecutors {
-
+class DefaultTaskExecutor : TaskExecutors {
     override val diskIO: Executor = Executors.newSingleThreadExecutor()
-    override val launchIO: ExecutorService = Executors.newFixedThreadPool(3)
+
     override val scheduler: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
+
     override val mainIO: Executor = MainExecutor()
+
+    override val launchIO: ExecutorService = Executors.newFixedThreadPool(3)
+
     override val concurrentIO: ExecutorService = Executors.newCachedThreadPool()
-    override val isOnMainThread get() = Looper.getMainLooper() == Looper.myLooper()
+
+    override val isOnMainThread: Boolean get() = Looper.getMainLooper() == Looper.myLooper()
+
+}
+
+class AppExecutors : TaskExecutors {
+    private var mDefaultTaskExecutor: TaskExecutors? = null
+    private var mDelegate: TaskExecutors? = null
+
+    private val defaultTaskExecutor: TaskExecutors
+        get() {
+            if (mDefaultTaskExecutor == null) mDefaultTaskExecutor = DefaultTaskExecutor()
+            return mDefaultTaskExecutor!!
+        }
+
+    private val delegate: TaskExecutors
+        get() {
+            if (mDelegate == null) synchronized(this) {
+                if (mDelegate == null) mDelegate = defaultTaskExecutor
+            }
+            return mDelegate!!
+        }
+
+    override val diskIO: Executor get() = delegate.diskIO
+    override val launchIO: ExecutorService get() = delegate.launchIO
+    override val scheduler: ScheduledExecutorService get() = delegate.scheduler
+    override val mainIO: Executor get() = delegate.mainIO
+    override val concurrentIO: ExecutorService get() = delegate.concurrentIO
+    override val isOnMainThread get() = delegate.isOnMainThread
 
     companion object {
-        val isOnMainThread get() = mDelegate?.isOnMainThread ?: sInstance.isOnMainThread
-
         private val sInstance: AppExecutors by lazy { AppExecutors() }
-        private var mDelegate: TaskExecutors? = null
 
-        val diskIO: Executor get() = mDelegate?.diskIO ?: sInstance.diskIO
-        val scheduler: ScheduledExecutorService get() = mDelegate?.scheduler ?: sInstance.scheduler
-        val mainIO: Executor get() = mDelegate?.mainIO ?: sInstance.mainIO
+        val isOnMainThread get() = sInstance.isOnMainThread
 
-        val launchIO: ExecutorService get() = mDelegate?.launchIO ?: sInstance.launchIO
-        val concurrentIO: ExecutorService get() = mDelegate?.concurrentIO ?: sInstance.concurrentIO
+        val diskIO: Executor get() = sInstance.diskIO
+        val scheduler: ScheduledExecutorService get() = sInstance.scheduler
+        val mainIO: Executor get() = sInstance.mainIO
+        val launchIO: ExecutorService get() = sInstance.launchIO
+        val concurrentIO: ExecutorService get() = sInstance.concurrentIO
 
         fun setDelegate(delegate: TaskExecutors?) {
-            mDelegate = delegate
+            sInstance.mDelegate = delegate
         }
 
         fun <T> loadInBackGround(function: () -> T): ExecutorConcurrent<T> {
@@ -64,6 +92,7 @@ class ExecutorConcurrent<T>(private val function: () -> T) {
 
 class MainExecutor : Executor {
     private val mHandler = Handler(Looper.getMainLooper())
+
     override fun execute(command: Runnable) {
         if (!isOnMainThread) mHandler.post(command)
         else command.run()
