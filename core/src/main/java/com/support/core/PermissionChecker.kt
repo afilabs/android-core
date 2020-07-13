@@ -112,7 +112,12 @@ open class PermissionChecker(private val activity: BaseActivity) {
     }
 
     private fun requestCodeOf(permissions: Array<out String>): Int {
-        return permissions.hashCode() and 0xffff
+        val prime = 31
+        var result = 1
+        for (s in permissions) {
+            result = result * prime + s.hashCode()
+        }
+        return (result and 0xffff)
     }
 
     private fun isAnyAllowed(vararg permissions: String): Boolean {

@@ -1,7 +1,9 @@
 package com.support.location.engine.loader
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Location
+import androidx.arch.core.executor.ArchTaskExecutor
 import com.support.location.engine.LocationOptions
 import com.support.location.engine.OnLocationUpdateListener
 import com.support.location.isGPSEnabled
@@ -56,9 +58,10 @@ abstract class LocationLoader(
         return false
     }
 
+    @SuppressLint("RestrictedApi")
     protected open fun notifyLocationUpdated(location: Location, listener: OnLocationUpdateListener) {
         mLastLocation = location to System.currentTimeMillis()
-        listener.onLocationUpdated(location)
+        ArchTaskExecutor.getMainThreadExecutor().execute { listener.onLocationUpdated(location) }
     }
 
     fun nextRequest(listener: OnLocationUpdateListener) {
