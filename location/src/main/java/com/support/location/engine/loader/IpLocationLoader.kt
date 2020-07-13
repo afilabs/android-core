@@ -28,7 +28,7 @@ class IpLocationLoader(context: Context, next: LocationLoader? = null, options: 
                 val location = hostInfo.location
                 notifyLocationUpdated(location, listener)
             } catch (e: Throwable) {
-                listener.onLocationUpdated(options.default.location)
+                notifyLocationUpdated(options.default.location, listener)
             }
         }
     }
@@ -37,7 +37,7 @@ class IpLocationLoader(context: Context, next: LocationLoader? = null, options: 
         val last = lastLocation ?: return false
         val (location, time) = last
         if ((System.currentTimeMillis() - time) / 3600000 > 1) return false
-        listener.onLocationUpdated(location)
+        notifyLocationUpdated(location, listener)
         return true
     }
 
