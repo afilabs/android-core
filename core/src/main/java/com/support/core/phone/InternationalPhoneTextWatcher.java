@@ -7,11 +7,10 @@ import android.text.Selection;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 
-import io.michaelrocks.libphonenumber.android.AsYouTypeFormatter;
-import io.michaelrocks.libphonenumber.android.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.AsYouTypeFormatter;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
 
 
-//Reference https://stackoverflow.com/questions/32661363/using-phonenumberformattingtextwatcher-without-typing-country-calling-code to solve formatting issue
 public class InternationalPhoneTextWatcher implements TextWatcher {
 
     private static final String TAG = "Int'l Phone TextWatcher";
@@ -36,27 +35,25 @@ public class InternationalPhoneTextWatcher implements TextWatcher {
     private boolean internationalOnly;
 
     /**
-     * @param context
      * @param countryNameCode  ISO 3166-1 two-letter country code that indicates the country/region
      *                         where the phone number is being entered.
      * @param countryPhoneCode Phone code of country. https://countrycode.org/
      */
     public InternationalPhoneTextWatcher(Context context, String countryNameCode, int countryPhoneCode) {
-        this(context, countryNameCode, countryPhoneCode, true);
+        this(countryNameCode, countryPhoneCode, true);
     }
 
     /**
-     * @param context
      * @param countryNameCode   ISO 3166-1 two-letter country code that indicates the country/region
      *                          where the phone number is being entered.
      * @param countryPhoneCode  Phone code of country. https://countrycode.org/
      * @param internationalOnly Specifies whether numbers should only be formatted if they are
      *                          international vs national
      */
-    public InternationalPhoneTextWatcher(Context context, String countryNameCode, int countryPhoneCode, boolean internationalOnly) {
+    public InternationalPhoneTextWatcher(String countryNameCode, int countryPhoneCode, boolean internationalOnly) {
         if (countryNameCode == null || countryNameCode.length() == 0)
             throw new IllegalArgumentException();
-        phoneNumberUtil = PhoneNumberUtil.createInstance(context);
+        phoneNumberUtil = PhoneNumberUtil.getInstance();
         updateCountry(countryNameCode, countryPhoneCode);
         this.internationalOnly = internationalOnly;
     }
