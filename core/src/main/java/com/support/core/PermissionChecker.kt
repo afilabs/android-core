@@ -16,7 +16,8 @@ import com.support.core.extension.safe
 class PermissionOptions(
     val title: String = "Permission denied",
     val message: String = "You need to allow permission to use this feature",
-    val positive: String = "Ok"
+    val positive: String = "Ok",
+    val cancelable: Boolean = true
 )
 
 class PermissionChecker(private val activity: BaseActivity) {
@@ -172,6 +173,7 @@ class PermissionChecker(private val activity: BaseActivity) {
         AlertDialog.Builder(activity)
             .setTitle(options.title)
             .setMessage(options.message)
+            .setCancelable(options.cancelable)
             .setPositiveButton(options.positive) { _: DialogInterface, _: Int ->
                 openSetting(permissions, checkAll, onPermission)
             }
