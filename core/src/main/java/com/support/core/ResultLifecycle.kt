@@ -100,24 +100,22 @@ class ResultRegistry : ResultLifecycle {
     }
 
     fun handleActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        mActivityResults.filter { requestCode == it.key }.forEach {
-            val callback = it.value
+        mActivityResults[requestCode]?.also {
+            val callback = it
             if (callback is ActivityInstantResultCallback) {
-                mActivityResults.remove(it.key)
+                mActivityResults.remove(requestCode)
             }
 
-            val shouldCallback = (callback is SuccessResultCallback && resultCode == Activity.RESULT_OK)
-                    || callback !is SuccessResultCallback
+            val shouldCallback =
+                (callback is SuccessResultCallback && resultCode == Activity.RESULT_OK)
+                        || callback !is SuccessResultCallback
 
             if (shouldCallback) callback(resultCode, data)
         }
     }
 
     fun handlePermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        mPermissions.filter { it.key == requestCode }.forEach {
-            it.value(permissions, grantResults)
-            mPermissions.remove(it.key)
-        }
+        mPermissions[requestCode]?.invoke(permissions, grantResults)
     }
 
     private interface SuccessResultCallback
