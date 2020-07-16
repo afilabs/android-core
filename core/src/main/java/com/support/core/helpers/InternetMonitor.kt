@@ -25,7 +25,7 @@ abstract class InternetMonitor(val context: Context) {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 NetworkMonitor(context)
             } else {
-                BroadcastMonitor(context)
+                BroadcastNetworkMonitor(context)
             }
         }
     }
@@ -149,7 +149,7 @@ class NetworkMonitor(context: Context) : InternetMonitor(context) {
     }
 }
 
-class BroadcastMonitor(context: Context) : InternetMonitor(context) {
+class BroadcastNetworkMonitor(context: Context) : InternetMonitor(context) {
     private val networkManager =
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
@@ -167,7 +167,10 @@ class BroadcastMonitor(context: Context) : InternetMonitor(context) {
 
     override fun onActive() {
         try {
-            context.registerReceiver(mReceiver, IntentFilter())
+            context.registerReceiver(
+                mReceiver,
+                IntentFilter("android.net.conn.CONNECTIVITY_CHANGE")
+            )
         } catch (e: Throwable) {
         }
     }
