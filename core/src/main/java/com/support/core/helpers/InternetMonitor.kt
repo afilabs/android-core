@@ -1,6 +1,9 @@
 package com.support.core.helpers
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkRequest
@@ -15,13 +18,14 @@ import com.support.core.extension.block
 import com.support.core.extension.isNetworkConnected
 import java.net.InetAddress
 
+
 abstract class InternetMonitor(val context: Context) {
     companion object {
         fun create(context: Context): InternetMonitor {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 NetworkMonitor(context)
             } else {
-                PingMonitor(context)
+                BroadcastMonitor(context)
             }
         }
     }
@@ -142,6 +146,37 @@ class NetworkMonitor(context: Context) : InternetMonitor(context) {
 
     override fun onInactive() {
         mManager.unregisterNetworkCallback(mCallback)
+    }
+}
+
+class BroadcastMonitor(context: Context) : InternetMonitor(context) {
+    private val networkManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+    private val mReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val isConnected = try {
+                val netInfo = networkManager.activeNetworkInfo
+                netInfo != null && netInfo.isConnected
+            } catch (e: NullPointerException) {
+                false
+            }
+            setAccessible(isConnected)
+        }
+    }
+
+    override fun onActive() {
+        try {
+            context.registerReceiver(mReceiver, IntentFilter())
+        } catch (e: Throwable) {
+        }
+    }
+
+    override fun onInactive() {
+        try {
+            context.unregisterReceiver(mReceiver)
+        } catch (t: Throwable) {
+        }
     }
 }
 
