@@ -4,27 +4,42 @@ import android.content.ContentValues
 import android.content.Intent
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import com.support.core.AppExecutors
 import com.support.core.base.BaseActivity
+import com.support.core.event.LocalEvent
 import com.support.core.extension.lazyNone
 import com.support.core.helpers.FileCache
 import com.support.core.helpers.FileScale
+import com.support.core.open
 import kotlinx.android.synthetic.main.activity_main.*
 
 
 class MainActivity : BaseActivity(R.layout.activity_main) {
+    companion object {
+        val event = LocalEvent<Payload>()
+    }
+
     private val fileScale: FileScale by lazyNone { FileScale(this, FileCache(this, "Test-Photos")) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.e("File", "${event.value}")
+        event.observeNotNull(this) {
+            btnHelloWorld.text = it.value
+        }
+        event.observeNotNull(this) {
+            btnHelloWorld2.text = it.value
+        }
         btnHelloWorld.setOnClickListener {
-            permissionChecker.access(
-                android.Manifest.permission.READ_EXTERNAL_STORAGE,
-                android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                android.Manifest.permission.CAMERA
-            ) {
-                openCamera()
-            }
+            open<TestActivity> { }
+//            permissionChecker.access(
+//                android.Manifest.permission.READ_EXTERNAL_STORAGE,
+//                android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+//                android.Manifest.permission.CAMERA
+//            ) {
+//                openCamera()
+//            }
         }
     }
 

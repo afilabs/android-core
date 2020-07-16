@@ -3,10 +3,7 @@ package com.support.core.event
 import android.annotation.SuppressLint
 import androidx.arch.core.executor.ArchTaskExecutor
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.Observer
+import androidx.lifecycle.*
 import com.support.core.base.BaseFragment
 
 class LocalEvent<T> : Event<T> {
@@ -51,12 +48,9 @@ class LocalEvent<T> : Event<T> {
     }
 
     fun observe(owner: LifecycleOwner, observer: Observer<T>) {
-        val lifeOwner = when (owner) {
-            is BaseFragment -> owner.visibleOwner
-            is Fragment -> owner.viewLifecycleOwner
-            else -> owner
-        }
-        mObservers[observer] = LifeObserver(lifeOwner, observer).apply { onAttached() }
+        val index = mObservers.values.asSequence().filterIsInstance<LocalEvent<*>.LifeObserver>()
+            .count { it.owner == owner }
+        mObservers[observer] = LifeObserver(owner, observer, index).apply { onAttached() }
     }
 
     fun observeForever(observer: Observer<T>) {
@@ -82,31 +76,67 @@ class LocalEvent<T> : Event<T> {
     }
 
     private inner class LifeObserver(
-            private val owner: LifecycleOwner,
-            private val observer: Observer<T>
+        val owner: LifecycleOwner,
+        private val observer: Observer<T>,
+        private val index: Int
     ) : ObserverWrapper(), LifecycleEventObserver {
+
+        private val lifecycle = when (owner) {
+            is BaseFragment -> owner.visibleOwner
+            is Fragment -> owner.viewLifecycleOwner
+            else -> owner
+        }.lifecycle
+
+        private var mSavedState: SavedStateViewModel? = null
+
         private var mVersion = version
+        private var mValue: T? = null
 
         override fun onAttached() {
-            owner.lifecycle.addObserver(this)
+            if (owner !is ViewModelStoreOwner) error("owner should be ViewModelStoreOwner")
+            mSavedState = owner.viewModelStore
+                .getOrCreate(SavedStateViewModel::class.java.simpleName) {
+                    SavedStateViewModel()
+                }
+            restoreState(mSavedState!!)
+            lifecycle.addObserver(this)
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        private fun restoreState(savedState: SavedStateViewModel) {
+            val data = savedState[index] ?: return
+            mValue = data.value as? T
+            mVersion = data.version
         }
 
         override fun onDetached() {
-            owner.lifecycle.removeObserver(this)
+            mValue = null
+            mSavedState = null
+            lifecycle.removeObserver(this)
         }
 
         override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
             if (event == Lifecycle.Event.ON_DESTROY) {
                 removeObserver(observer)
             } else if (event == Lifecycle.Event.ON_START) {
-                if (mVersion != version) notifyChange()
+                if (mVersion != version) considerNotify()
             }
         }
 
         override fun notifyChange() {
-            if (!owner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) return
+            mValue = value
+            mSavedState?.set(index, SavedData(mValue, mVersion))
+            considerNotify()
+        }
+
+        private fun considerNotify() {
+            if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) return
+            observer.onChanged(mValue)
+
+            mValue = null
             mVersion = version
-            observer.onChanged(value)
+
+            mSavedState?.set(index, SavedData(mValue, mVersion))
         }
     }
 
@@ -116,6 +146,25 @@ class LocalEvent<T> : Event<T> {
             observer.onChanged(value)
         }
     }
+
+    class SavedStateViewModel : ViewModel() {
+        private val mData = hashMapOf<Int, SavedData>()
+
+        operator fun set(index: Int, data: SavedData) {
+            mData[index] = data
+        }
+
+        operator fun get(index: Int): SavedData? {
+            return mData[index]
+        }
+
+        override fun onCleared() {
+            super.onCleared()
+            mData.clear()
+        }
+    }
+
+    class SavedData(val value: Any?, val version: Int)
 
     companion object {
         const val START_VERSION = -1
