@@ -1,15 +1,12 @@
 package com.support.core.functional
 
 import android.view.View
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.*
 import com.support.core.R
 import com.support.core.extension.block
 
 
-abstract class LifecycleFeature : Feature(), LifecycleOwner {
+abstract class LifecycleFeature : Feature(), LifecycleOwner, ViewModelStoreOwner {
 
     private var mSourceOwner: LifecycleOwner? = null
     private var mLifecycleRegistry: LifecycleRegistry? = null
@@ -32,6 +29,12 @@ abstract class LifecycleFeature : Feature(), LifecycleOwner {
     override fun getLifecycle(): Lifecycle {
         if (mLifecycleRegistry == null) mLifecycleRegistry = LifecycleRegistry(this)
         return mLifecycleRegistry!!
+    }
+
+    override fun getViewModelStore(): ViewModelStore {
+        val owner = mSourceOwner ?: error("Owner has been detached")
+        return (owner as? ViewModelStoreOwner)?.viewModelStore
+            ?: error("${owner.javaClass.simpleName} is not ViewModelStoreOwner")
     }
 
     @Deprecated("unused", ReplaceWith("attach(view: View, owner: LifecycleOwner)"))
