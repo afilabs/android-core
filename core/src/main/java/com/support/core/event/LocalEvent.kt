@@ -93,12 +93,14 @@ class LocalEvent<T> : Event<T> {
         private var mValue: T? = null
 
         override fun onAttached() {
-            if (owner !is ViewModelStoreOwner) error("owner should be ViewModelStoreOwner")
-            mSavedState = owner.viewModelStore
-                .getOrCreate(SavedStateViewModel::class.java.simpleName) {
-                    SavedStateViewModel()
-                }
-            restoreState(mSavedState!!)
+            if (owner is ViewModelStoreOwner) {
+                mSavedState = owner.viewModelStore
+                    .getOrCreate(SavedStateViewModel::class.java.simpleName) {
+                        SavedStateViewModel()
+                    }
+                    .also(::restoreState)
+            }
+
             lifecycle.addObserver(this)
         }
 
