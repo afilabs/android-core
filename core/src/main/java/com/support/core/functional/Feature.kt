@@ -5,6 +5,32 @@ import androidx.lifecycle.*
 import com.support.core.R
 import com.support.core.extension.block
 
+abstract class Feature {
+    private var mView: View? = null
+    val view: View? get() = mView
+    val requireView: View
+        get() = mView ?: error("Feature ${this.javaClass.simpleName} not attached to view yet!")
+    val self get() = this
+
+    companion object {
+        internal val TAG_ID = R.id.feature
+    }
+
+    internal open fun attach(view: View) {
+        mView = view
+        view.setTag(TAG_ID, this)
+        onAttached(view)
+    }
+
+    internal open fun detach() = block(mView) {
+        setTag(TAG_ID, null)
+        onDetached()
+        mView = null
+    }
+
+    protected open fun onAttached(view: View) {}
+    protected open fun onDetached() {}
+}
 
 abstract class LifecycleFeature : Feature(), LifecycleOwner, ViewModelStoreOwner {
 
@@ -51,40 +77,13 @@ abstract class LifecycleFeature : Feature(), LifecycleOwner, ViewModelStoreOwner
     }
 
     internal fun attach(view: View, owner: LifecycleOwner) {
-        super.attach(view)
         mSourceOwner = owner
+        super.attach(view)
         owner.lifecycle.addObserver(mSourceObserver)
     }
 
     protected open fun onStart() {}
     protected open fun onStop() {}
-}
-
-abstract class Feature {
-    private var mView: View? = null
-    val view: View? get() = mView
-    val requireView: View
-        get() = mView ?: error("Feature ${this.javaClass.simpleName} not attached to view yet!")
-    val self get() = this
-
-    companion object {
-        internal val TAG_ID = R.id.feature
-    }
-
-    internal open fun attach(view: View) {
-        mView = view
-        view.setTag(TAG_ID, this)
-        onAttached(view)
-    }
-
-    internal open fun detach() = block(mView) {
-        setTag(TAG_ID, null)
-        onDetached()
-        mView = null
-    }
-
-    protected open fun onAttached(view: View) {}
-    protected open fun onDetached() {}
 }
 
 
