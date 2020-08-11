@@ -2,20 +2,23 @@ package com.support.core.base
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.support.core.factory.DefaultSharePreferencesFactory
+import com.support.core.factory.SharePreferencesFactory
 import com.support.core.functional.Parser
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
-abstract class Caching(context: Context, val parser: Parser) {
-    private val mShared = context.getSharedPreferences("logistics:cache", Context.MODE_PRIVATE)
+abstract class Caching(
+    context: Context,
+    val parser: Parser,
+    factory: SharePreferencesFactory = DefaultSharePreferencesFactory()
+) {
+    private val mShared = factory.create(context)
     val shared: SharedPreferences get() = mShared
 
     open fun clear() {}
 
     inline fun <reified T> reference(key: String) = object : CacheProperty<T?> {
-//        @Suppress("unchecked_cast")
-//        private val KProperty<*>.type: Class<T>
-//            get() = (returnType.classifier as KClass<*>).javaObjectType as Class<T>
 
         private var mValue: T? = null
 
