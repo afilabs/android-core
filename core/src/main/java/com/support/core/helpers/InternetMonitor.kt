@@ -124,15 +124,11 @@ abstract class InternetMonitor(val context: Context) {
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 class NetworkMonitor(context: Context) : InternetMonitor(context) {
     private val mManager =
-        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
 
     private val mCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
             setAccessible(true)
-        }
-
-        override fun onUnavailable() {
-            setAccessible(false)
         }
 
         override fun onLost(network: Network) {
@@ -141,22 +137,26 @@ class NetworkMonitor(context: Context) : InternetMonitor(context) {
     }
 
     override fun onActive() {
-        mManager.registerNetworkCallback(NetworkRequest.Builder().build(), mCallback)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            mManager?.registerDefaultNetworkCallback(mCallback)
+        } else {
+            mManager?.registerNetworkCallback(NetworkRequest.Builder().build(), mCallback)
+        }
     }
 
     override fun onInactive() {
-        mManager.unregisterNetworkCallback(mCallback)
+        mManager?.unregisterNetworkCallback(mCallback)
     }
 }
 
 class BroadcastNetworkMonitor(context: Context) : InternetMonitor(context) {
     private val networkManager =
-        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
 
     private val mReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val isConnected = try {
-                val netInfo = networkManager.activeNetworkInfo
+                val netInfo = networkManager?.activeNetworkInfo
                 netInfo != null && netInfo.isConnected
             } catch (e: NullPointerException) {
                 false
@@ -169,7 +169,7 @@ class BroadcastNetworkMonitor(context: Context) : InternetMonitor(context) {
         try {
             context.registerReceiver(
                 mReceiver,
-                IntentFilter("android.net.conn.CONNECTIVITY_CHANGE")
+                IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
             )
         } catch (e: Throwable) {
         }

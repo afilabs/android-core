@@ -9,5 +9,5 @@ val Context.isNetworkConnected: Boolean
         val connectivityManager =
             getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
         return connectivityManager != null && (connectivityManager
-            .activeNetworkInfo?.isConnectedOrConnecting ?: false)
+            .activeNetworkInfo?.isConnected ?: false)
     }
