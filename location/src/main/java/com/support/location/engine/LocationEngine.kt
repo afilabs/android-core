@@ -12,11 +12,6 @@ import com.support.location.WaitUntil
 interface LocationEngine {
     val delegate: LocationEngine? get() = null
 
-    fun isAllowed(context: Context): Boolean {
-        return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                || ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-    }
-
     fun waitPermission(context: Context) = WaitUntil { isAllowed(context) }
 
     @MainThread
@@ -38,4 +33,10 @@ interface LocationEngine {
         delegate?.unsubscribe(listener)
     }
 
+    companion object{
+        fun isAllowed(context: Context): Boolean {
+            return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                    || ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        }
+    }
 }
