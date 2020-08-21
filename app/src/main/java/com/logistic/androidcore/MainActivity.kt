@@ -9,6 +9,7 @@ import com.support.core.AppExecutors
 import com.support.core.base.BaseActivity
 import com.support.core.event.LocalEvent
 import com.support.core.extension.lazyNone
+import com.support.core.helpers.FileBitmap
 import com.support.core.helpers.FileCache
 import com.support.core.helpers.FileScale
 import com.support.core.open
@@ -20,7 +21,12 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
         val event = LocalEvent<Payload>()
     }
 
-    private val fileScale: FileScale by lazyNone { FileScale(this, FileCache(this, "Test-Photos")) }
+    private val fileScale: FileScale by lazyNone {
+        FileScale(
+            this, FileCache(this, "Test-Photos"),
+            FileBitmap(this)
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

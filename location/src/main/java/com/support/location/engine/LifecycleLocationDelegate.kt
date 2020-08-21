@@ -43,7 +43,7 @@ abstract class LifecycleLocationDelegate(private val context: Context) : Locatio
         }
 
         private fun requestUpdateIfNeeded() {
-            if (!mRequest && isAllowed(context)) {
+            if (!mRequest && LocationEngine.isAllowed(context)) {
                 onRequest(listener)
                 mRequest = true
             }
