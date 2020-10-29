@@ -9,15 +9,15 @@ import kotlin.reflect.KClass
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class Inject(
-        val singleton: Boolean = false
+    val singleton: Boolean = false
 )
 
 
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class InjectBy(
-        val clazz: KClass<out Injectable>,
-        val singleton: Boolean = false
+    val clazz: KClass<out Injectable>,
+    val singleton: Boolean = false
 )
 
 interface Injectable
@@ -36,8 +36,8 @@ interface Scope {
 }
 
 private open class SimpleBean<T>(
-        val isSingleton: Boolean,
-        val function: () -> T
+    val isSingleton: Boolean,
+    val function: () -> T
 ) : Bean<T> {
     private var mValue: T? = null
 
@@ -101,18 +101,18 @@ abstract class ProvideContext {
 
     abstract fun modules(vararg module: Module)
 
-    abstract fun <T> single(clazz: Class<T>, function: () -> T)
+    abstract fun <T> single(override: Boolean = false, clazz: Class<T>, function: () -> T)
 
-    abstract fun <T> factory(clazz: Class<T>, function: () -> T)
+    abstract fun <T> factory(override: Boolean = false, clazz: Class<T>, function: () -> T)
 
     abstract fun <T> scope(scopeId: String, clazz: Class<T>, function: () -> T)
 
-    inline fun <reified T> single(noinline function: () -> T) {
-        return single(T::class.java, function)
+    inline fun <reified T> single(override: Boolean = false, noinline function: () -> T) {
+        return single(override, T::class.java, function)
     }
 
-    inline fun <reified T> factory(noinline function: () -> T) {
-        return factory(T::class.java, function)
+    inline fun <reified T> factory(override: Boolean = false, noinline function: () -> T) {
+        return factory(override, T::class.java, function)
     }
 
     inline fun <reified T> scope(scopeId: String, noinline function: () -> T) {
@@ -150,18 +150,22 @@ class DependenceContext : ProvideContext() {
         mApplication = ApplicationBean(application)
     }
 
+    private fun error(clazz: Class<*>) {
+        error("Class ${clazz.simpleName} defined, please set override true to override this")
+    }
+
     override fun getBean(clazz: Class<*>): Bean<*>? {
         if (mBean.containsKey(clazz)) return mBean[clazz]
         error("Not found ${clazz.javaClass.name}")
     }
 
-    override fun <T> single(clazz: Class<T>, function: () -> T) {
-        if (mBean.containsKey(clazz)) error("Class  ${clazz.simpleName} defined")
+    override fun <T> single(override: Boolean, clazz: Class<T>, function: () -> T) {
+        if (mBean.containsKey(clazz) && !override) error(clazz)
         mBean[clazz] = SimpleBean(true, function)
     }
 
-    override fun <T> factory(clazz: Class<T>, function: () -> T) {
-        if (mBean.containsKey(clazz)) error("Class  ${clazz.simpleName} defined")
+    override fun <T> factory(override: Boolean, clazz: Class<T>, function: () -> T) {
+        if (mBean.containsKey(clazz) && !override) error(clazz)
         mBean[clazz] = SimpleBean(false, function)
     }
 
@@ -185,7 +189,7 @@ class DependenceContext : ProvideContext() {
     fun <T> lookup(clazz: Class<T>): Bean<T> {
         if (!mBean.containsKey(clazz)) {
             if (clazz.isAssignableFrom(Application::class.java)
-                    || clazz.isAssignableFrom(Context::class.java)
+                || clazz.isAssignableFrom(Context::class.java)
             ) return mApplication as Bean<T>
             reflectProvideIfNeeded(clazz)
         }
@@ -198,7 +202,7 @@ class DependenceContext : ProvideContext() {
 
     private fun <T> reflectProvideIfNeeded(clazz: Class<T>) {
         when {
-            ViewModel::class.java.isAssignableFrom(clazz) -> factory(clazz) {
+            ViewModel::class.java.isAssignableFrom(clazz) -> factory(clazz = clazz) {
                 create(clazz)
             }
             clazz.isInterface -> provideByInjectBy(clazz)
@@ -208,12 +212,12 @@ class DependenceContext : ProvideContext() {
 
     private fun <T> provideByInjectBy(clazz: Class<T>) {
         val annotation = clazz.getAnnotation(InjectBy::class.java)
-                ?: error("Not found provider for ${clazz.simpleName}")
+            ?: error("Not found provider for ${clazz.simpleName}")
         val byClazz = annotation.clazz.java
 
-        if (annotation.singleton) single(clazz) {
+        if (annotation.singleton) single(clazz = clazz) {
             create(byClazz) as T
-        } else factory(clazz) {
+        } else factory(clazz = clazz) {
             create(byClazz) as T
         }
     }
@@ -236,9 +240,9 @@ class DependenceContext : ProvideContext() {
         }
         if (!shouldProvide) error("Not found declaration for ${clazz.simpleName}")
 
-        if (singleton) single(clazz) {
+        if (singleton) single(clazz = clazz) {
             create(clazz)
-        } else factory(clazz) {
+        } else factory(clazz = clazz) {
             create(clazz)
         }
     }
@@ -254,13 +258,14 @@ class DependenceContext : ProvideContext() {
     @Suppress("unchecked_cast")
     fun <T> create(clazz: Class<T>): T {
         val constructor = clazz.constructors.firstOrNull()
-                ?: clazz.declaredConstructors.firstOrNull()
-                ?: error("Not found constructor for ${clazz.simpleName}")
+            ?: clazz.declaredConstructors.firstOrNull()
+            ?: error("Not found constructor for ${clazz.simpleName}")
 
         val paramTypes = constructor.genericParameterTypes
         return try {
-            constructor.newInstance(*paramTypes.map { lookup(it as Class<*>).value }.toTypedArray()) as T
-        }catch (e:Throwable){
+            constructor.newInstance(*paramTypes.map { lookup(it as Class<*>).value }
+                .toTypedArray()) as T
+        } catch (e: Throwable) {
             Log.e("DependencyContext", "Error lookup for ${clazz.name}")
             throw e
         }
@@ -269,8 +274,8 @@ class DependenceContext : ProvideContext() {
 }
 
 class Module(
-        private val context: DependenceContext,
-        private val provide: (DependenceContext) -> Unit
+    private val context: DependenceContext,
+    private val provide: (DependenceContext) -> Unit
 ) : ProvideContext() {
     private var mModules: Array<out Module>? = null
 
@@ -282,12 +287,12 @@ class Module(
         mModules = module
     }
 
-    override fun <T> single(clazz: Class<T>, function: () -> T) {
-        context.single(clazz, function)
+    override fun <T> single(override: Boolean, clazz: Class<T>, function: () -> T) {
+        context.single(override, clazz, function)
     }
 
-    override fun <T> factory(clazz: Class<T>, function: () -> T) {
-        context.factory(clazz, function)
+    override fun <T> factory(override: Boolean, clazz: Class<T>, function: () -> T) {
+        context.factory(override, clazz, function)
     }
 
     override fun <T> scope(scopeId: String, clazz: Class<T>, function: () -> T) {

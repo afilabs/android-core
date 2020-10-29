@@ -12,6 +12,7 @@ import com.support.core.extension.lazyNone
 import com.support.core.helpers.FileBitmap
 import com.support.core.helpers.FileCache
 import com.support.core.helpers.FileScale
+import com.support.core.inject
 import com.support.core.open
 import kotlinx.android.synthetic.main.activity_main.*
 
@@ -21,15 +22,35 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
         val event = LocalEvent<Payload>()
     }
 
+    private val fileCache: FileCache by lazyNone { FileCache(this, "Test-Photos") }
+
     private val fileScale: FileScale by lazyNone {
         FileScale(
-            this, FileCache(this, "Test-Photos"),
-            FileBitmap(this)
+            fileCache, FileBitmap(this)
         )
     }
+    private val authRepo: AuthRepository by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+//       testLocalEvent()
+        testOpenCamera()
+        btnHelloWorld2.text = authRepo.name
+    }
+
+    private fun testOpenCamera() {
+        btnHelloWorld.setOnClickListener {
+            permissionChecker.access(
+                android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                android.Manifest.permission.CAMERA
+            ) {
+                openCamera()
+            }
+        }
+    }
+
+    private fun testLocalEvent() {
         Log.e("File", "${event.value}")
         event.observeNotNull(this) {
             btnHelloWorld.text = it.value
@@ -39,13 +60,6 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
         }
         btnHelloWorld.setOnClickListener {
             open<TestActivity> { }
-//            permissionChecker.access(
-//                android.Manifest.permission.READ_EXTERNAL_STORAGE,
-//                android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
-//                android.Manifest.permission.CAMERA
-//            ) {
-//                openCamera()
-//            }
         }
     }
 
@@ -70,7 +84,13 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
             })
         resultLife.onInstantSuccessResult(101) {
             try {
-                AppExecutors.diskIO.execute { fileScale.execute(imageURI!!, true, false) }
+                AppExecutors.diskIO.execute {
+                    try {
+                        fileCache.delete(fileScale.execute(imageURI!!, true, true))
+                    } catch (e: Throwable) {
+                        e.printStackTrace()
+                    }
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }

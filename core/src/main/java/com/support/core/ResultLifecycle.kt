@@ -49,12 +49,14 @@ interface ResultLifecycle {
      * @param resultCode Result code return from activity finished
      * @param data Result data return from activity finished
      */
+    @Deprecated("unused")
     fun onInstantResult(requestCode: Int = REQUEST_FOR_RESULT_INSTANTLY, callback: (resultCode: Int, data: Intent?) -> Unit)
 
     /**
      * Registry onActivityResult with result Activity.RESULT_OK received
      * @see onInstantResult for the same behavior
      */
+    @Deprecated("unused")
     fun onInstantSuccessResult(requestCode: Int = REQUEST_FOR_RESULT_INSTANTLY, callback: (data: Intent?) -> Unit)
 
     fun onPermissionsResult(requestCode: Int, callback: (permissions: Array<out String>, grantResults: IntArray) -> Unit)

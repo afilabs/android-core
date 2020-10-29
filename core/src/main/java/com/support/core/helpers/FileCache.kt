@@ -3,15 +3,21 @@ package com.support.core.helpers
 import android.content.Context
 import android.graphics.Bitmap
 import android.media.MediaScannerConnection
+import android.net.Uri
 import android.os.Environment
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
+import com.support.core.extension.tryCall
 import java.io.File
 import java.io.FileOutputStream
 
 class FileCache(private val context: Context, private val folderName: String) {
-    fun delete(signaturePath: String) {
-        File(signaturePath).delete()
+    fun delete(path: String) {
+        File(path).delete()
+    }
+
+    fun delete(uri: Uri) {
+        tryCall { context.contentResolver.delete(uri, null, null) }
     }
 
     fun saveToCache(it: Bitmap, quality: Int = 80): String {
@@ -37,8 +43,16 @@ class FileCache(private val context: Context, private val folderName: String) {
         val file = onCreateGalleryFolder(folderName)
         val exist = file.exists()
         file.mkdirs()
-        if (!exist) MediaScannerConnection.scanFile(context, arrayOf(file.path), arrayOf("image/*")) { _, _ -> }
+        if (!exist) refresh(file)
         return file
+    }
+
+    private fun refresh(folder: File) {
+        MediaScannerConnection.scanFile(
+            context,
+            arrayOf(folder.path),
+            arrayOf("image/*")
+        ) { _, _ -> }
     }
 
     private fun onCreateGalleryFolder(folderName: String): File {

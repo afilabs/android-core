@@ -10,7 +10,7 @@ abstract class Feature {
     val view: View? get() = mView
     val requireView: View
         get() = mView ?: error("Feature ${this.javaClass.simpleName} not attached to view yet!")
-    val self get() = this
+    open val self get() = this
 
     companion object {
         internal val TAG_ID = R.id.feature

@@ -1,16 +1,13 @@
 package com.support.core
 
-import java.util.concurrent.Callable
-import java.util.concurrent.CancellationException
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Future
+import java.util.concurrent.*
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 private val asyncIO get() = AppExecutors.concurrentIO
 private val launchIO get() = AppExecutors.launchIO
 
-class ConcurrentContext {
+open class ConcurrentContext {
     private val mScopes = arrayListOf<ConcurrentScope>()
 
     fun cancel() = synchronized(this) {
@@ -141,9 +138,13 @@ class Deferred<T>(private val scope: ConcurrentScope, function: () -> T) {
         }
     })
 
-    fun await(): T {
+    /**
+     * @param timeout Timeout in milliseconds
+     */
+    fun await(timeout: Long = -1): T {
         return try {
-            mFuture.get()
+            if (timeout == -1L) mFuture.get()
+            else mFuture.get(timeout, TimeUnit.MILLISECONDS)
         } catch (e: Throwable) {
             if ((e is InterruptedException || e is CancellationException)
                     && mScopeError != null
@@ -160,6 +161,8 @@ class Deferred<T>(private val scope: ConcurrentScope, function: () -> T) {
         mFuture.cancel(true)
     }
 }
+
+object GlobalConcurrent : ConcurrentContext()
 
 operator fun Deferred<out Any>.plus(task: Deferred<Unit>): List<Deferred<out Any>> {
     return arrayListOf(this, task)
