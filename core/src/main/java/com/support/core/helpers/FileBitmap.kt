@@ -28,18 +28,27 @@ class FileBitmap(private val context: Context) {
     }
 
     fun getBitmapFrom(uri: Uri): Bitmap {
-        val bitmap: Bitmap =
-            FileUtils.getPath(context, uri)?.let { BitmapFactory.decodeFile(it) } ?: try {
-                val ims = context.contentResolver.openInputStream(uri)
-                    ?: throw FileNotFoundException("File $uri not found")
-                BitmapFactory.decodeStream(ims)
-            } catch (e: FileNotFoundException) {
-                throw e
-            }
+        val bitmap: Bitmap = try {
+            FileUtils.getPath(context, uri)?.let { BitmapFactory.decodeFile(it) }
+        } catch (e: Throwable) {
+            null
+        } ?: try {
+            val ims = context.contentResolver.openInputStream(uri)
+                ?: throw FileNotFoundException("File $uri not found")
+            BitmapFactory.decodeStream(ims)
+        } catch (e: FileNotFoundException) {
+            throw e
+        }
 
-        val exif: ExifInterface? = if (Build.VERSION.SDK_INT > 23)
+        val exif: ExifInterface? = try {
             context.contentResolver.openInputStream(uri)?.let { ExifInterface(it) }
-        else uri.path?.let { ExifInterface(it) }
+        } catch (e: Throwable) {
+            try {
+                uri.path?.let { ExifInterface(it) }
+            } catch (e: Throwable) {
+                null
+            }
+        }
 
         val orientation: Int = exif?.getAttributeInt(
             ExifInterface.TAG_ORIENTATION,
