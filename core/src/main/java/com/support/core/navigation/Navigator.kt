@@ -1,11 +1,12 @@
 package com.support.core.navigation
 
 import android.os.Bundle
+import androidx.annotation.CallSuper
 import androidx.annotation.IdRes
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
-import androidx.fragment.app.FragmentManager
-import androidx.fragment.app.FragmentTransaction
+import androidx.fragment.app.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import java.io.Serializable
 import java.util.*
 import kotlin.reflect.KClass
@@ -14,6 +15,25 @@ abstract class Navigator(private val fragmentManager: FragmentManager, @IdRes va
     abstract val lastDestination: Destination?
     var onNavigateChangedListener: (KClass<out Fragment>) -> Unit = {}
     private val mTransactionManager = TransactionManager()
+    private var mExecutable: Boolean = true
+
+    // Fix for case "Can not perform this action after onSaveInstanceState"
+    private val mObserver = object : LifecycleEventObserver {
+        override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+            if (event == Lifecycle.Event.ON_DESTROY) {
+                source.lifecycle.removeObserver(this)
+            } else if (event == Lifecycle.Event.ON_START) {
+                if (!mExecutable) {
+                    mExecutable = true
+                    mTransactionManager.executeIfNeeded()
+                }
+            }
+        }
+    }
+
+    init {
+        fragmentManager.fragmentLifecycle.addObserver(mObserver)
+    }
 
     abstract fun navigate(
         kClass: KClass<out Fragment>,
@@ -23,7 +43,10 @@ abstract class Navigator(private val fragmentManager: FragmentManager, @IdRes va
 
     abstract fun navigateUp(): Boolean
 
-    open fun onSaveInstance(state: Bundle) {}
+    @CallSuper
+    open fun onSaveInstance(state: Bundle) {
+        mExecutable = false
+    }
 
     open fun onRestoreInstance(saved: Bundle) {}
 
@@ -41,12 +64,15 @@ abstract class Navigator(private val fragmentManager: FragmentManager, @IdRes va
                 mTransactions.pop()
                 next?.execute()
             }
-            if (isEmpty) {
-                mTransactions.add(transaction)
-                transaction.execute()
-            } else {
-                mTransactions.add(transaction)
-            }
+
+            val shouldExecute = isEmpty && mExecutable
+            mTransactions.add(transaction)
+            if (shouldExecute) transaction.execute()
+        }
+
+        fun executeIfNeeded() {
+            if (mTransactions.isEmpty()) return
+            mTransactions.first.execute()
         }
     }
 

@@ -139,11 +139,13 @@ class FragmentNavigator(
     }
 
     override fun onSaveInstance(state: Bundle) {
+        super.onSaveInstance(state)
         mStack.onSaveInstance(state)
         Log.i("Stack", "Saved")
     }
 
     override fun onRestoreInstance(saved: Bundle) {
+        super.onRestoreInstance(saved)
         mStack.onRestoreInstance(saved)
         Log.i("Stack", mStack.toString())
     }

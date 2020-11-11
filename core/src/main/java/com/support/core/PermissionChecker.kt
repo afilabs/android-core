@@ -94,6 +94,7 @@ class PermissionChecker(private val activity: BaseActivity) {
         options: PermissionOptions,
         onPermission: (Boolean) -> Unit
     ) {
+        if (activity.isFinishing) return
         if (shouldShowSettings(permissions)) {
             showSuggestOpenSetting(
                 permissions,
