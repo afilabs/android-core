@@ -11,190 +11,168 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import com.support.core.base.BaseActivity
+import com.support.core.base.BaseFragment
 import com.support.core.extension.safe
-
-interface PermissionResultRegistry {
-    fun handlePermissionResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    )
-
-    fun handleActivityResult(requestCode: Int, resultCode: Int, data: Intent?)
-
-    fun clear()
-}
 
 interface PermissionAccessible {
     fun check(
-        vararg permissions: String,
-        options: PermissionSettingOptions? = null,
-        onPermission: (Boolean) -> Unit
+            vararg permissions: String,
+            options: PermissionSettingOptions? = null,
+            onPermission: (Boolean) -> Unit
     ): PermissionRequest
 
     fun access(
-        vararg permissions: String,
-        options: PermissionSettingOptions? = null,
-        onPermission: () -> Unit
+            vararg permissions: String,
+            options: PermissionSettingOptions? = null,
+            onPermission: () -> Unit
     ): PermissionRequest
 
     fun checkAny(
-        vararg permissions: String,
-        options: PermissionSettingOptions? = null,
-        onPermission: (Boolean) -> Unit
+            vararg permissions: String,
+            options: PermissionSettingOptions? = null,
+            onPermission: (Boolean) -> Unit
     ): PermissionRequest
 
     fun accessAny(
-        vararg permissions: String,
-        options: PermissionSettingOptions? = null,
-        onPermission: () -> Unit
+            vararg permissions: String,
+            options: PermissionSettingOptions? = null,
+            onPermission: () -> Unit
     ): PermissionRequest
 
     fun forceAccess(
-        vararg permissions: String,
-        options: PermissionSettingOptions? = null,
-        onPermission: () -> Unit
+            vararg permissions: String,
+            options: PermissionSettingOptions? = null,
+            onPermission: () -> Unit
     ): PermissionRequest
 
     fun forceAccessAny(
-        vararg permissions: String,
-        options: PermissionSettingOptions? = null,
-        onPermission: () -> Unit
+            vararg permissions: String,
+            options: PermissionSettingOptions? = null,
+            onPermission: () -> Unit
     ): PermissionRequest
 
 }
 
 class PermissionSettingOptions(
-    val titleDenied: String = "Permission denied",
-    val messageDenied: String = "You need to allow permission to use this feature",
-    val positive: String = "Ok"
+        val titleDenied: String = "Permission denied",
+        val messageDenied: String = "You need to allow permission to use this feature",
+        val positive: String = "Ok"
 )
 
-class PermissionAccessibleImpl : PermissionResultRegistry, PermissionAccessible {
+class PermissionAccessibleImpl : PermissionAccessible {
 
     private val mDispatcher: PermissionDispatcher
 
-    constructor(activity: FragmentActivity) {
-        mDispatcher = ActivityDispatcher(activity)
+    constructor(activity: BaseActivity) {
+        mDispatcher = ActivityDispatcher(activity, activity.resultLife)
     }
 
-    constructor(fragment: Fragment) {
-        mDispatcher = FragmentDispatcher(fragment)
+    constructor(fragment: BaseFragment) {
+        mDispatcher = FragmentDispatcher(fragment, fragment.resultLife)
     }
 
-    override fun handlePermissionResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        mDispatcher.handlePermissionResult(requestCode, permissions, grantResults)
+    constructor(activity: FragmentActivity, resultLifecycle: ResultLifecycle) {
+        mDispatcher = ActivityDispatcher(activity, resultLifecycle)
     }
 
-    override fun handleActivityResult(
-        requestCode: Int,
-        resultCode: Int,
-        data: Intent?
-    ) {
-        mDispatcher.handleActivityResult(requestCode, resultCode, data)
+    constructor(fragment: Fragment, resultLifecycle: ResultLifecycle) {
+        mDispatcher = FragmentDispatcher(fragment, resultLifecycle)
     }
 
     override fun check(
-        vararg permissions: String,
-        options: PermissionSettingOptions?,
-        onPermission: (Boolean) -> Unit
+            vararg permissions: String,
+            options: PermissionSettingOptions?,
+            onPermission: (Boolean) -> Unit
     ): PermissionRequest {
         return PermissionRequestImpl(
-            *permissions,
-            options = options,
-            dispatcher = mDispatcher,
-            onPermission = { onPermission(it) }
+                *permissions,
+                options = options,
+                dispatcher = mDispatcher,
+                onPermission = { onPermission(it) }
         )
     }
 
     override fun access(
-        vararg permissions: String,
-        options: PermissionSettingOptions?,
-        onPermission: () -> Unit
+            vararg permissions: String,
+            options: PermissionSettingOptions?,
+            onPermission: () -> Unit
     ): PermissionRequest {
         return PermissionRequestImpl(
-            *permissions,
-            options = options,
-            dispatcher = mDispatcher,
-            onPermission = {
-                if (it) onPermission()
-            })
+                *permissions,
+                options = options,
+                dispatcher = mDispatcher,
+                onPermission = {
+                    if (it) onPermission()
+                })
     }
 
     override fun checkAny(
-        vararg permissions: String,
-        options: PermissionSettingOptions?,
-        onPermission: (Boolean) -> Unit
+            vararg permissions: String,
+            options: PermissionSettingOptions?,
+            onPermission: (Boolean) -> Unit
     ): PermissionRequest {
         return PermissionRequestImpl(
-            *permissions,
-            options = options,
-            dispatcher = mDispatcher,
-            onPermission = { onPermission(it) }
+                *permissions,
+                options = options,
+                dispatcher = mDispatcher,
+                onPermission = { onPermission(it) }
         )
     }
 
     override fun accessAny(
-        vararg permissions: String,
-        options: PermissionSettingOptions?,
-        onPermission: () -> Unit
+            vararg permissions: String,
+            options: PermissionSettingOptions?,
+            onPermission: () -> Unit
     ): PermissionRequest {
         return PermissionRequestAnyImpl(
-            *permissions,
-            options = options,
-            dispatcher = mDispatcher,
-            onPermission = {
-                if (it) onPermission()
-            }
+                *permissions,
+                options = options,
+                dispatcher = mDispatcher,
+                onPermission = {
+                    if (it) onPermission()
+                }
         )
     }
 
     override fun forceAccess(
-        vararg permissions: String,
-        options: PermissionSettingOptions?,
-        onPermission: () -> Unit
+            vararg permissions: String,
+            options: PermissionSettingOptions?,
+            onPermission: () -> Unit
     ): PermissionRequest {
         return PermissionRequestImpl(
-            *permissions,
-            options = options,
-            dispatcher = mDispatcher,
-            onPermission = {
-                if (!it) request()
-                else onPermission()
-            }
+                *permissions,
+                options = options,
+                dispatcher = mDispatcher,
+                onPermission = {
+                    if (!it) request()
+                    else onPermission()
+                }
         )
     }
 
     override fun forceAccessAny(
-        vararg permissions: String,
-        options: PermissionSettingOptions?,
-        onPermission: () -> Unit
+            vararg permissions: String,
+            options: PermissionSettingOptions?,
+            onPermission: () -> Unit
     ): PermissionRequest {
         return PermissionRequestAnyImpl(
-            *permissions,
-            options = options,
-            dispatcher = mDispatcher,
-            onPermission = {
-                if (!it) request()
-                else onPermission()
-            }
+                *permissions,
+                options = options,
+                dispatcher = mDispatcher,
+                onPermission = {
+                    if (!it) request()
+                    else onPermission()
+                }
         )
-    }
-
-    override fun clear() {
-        mDispatcher.clear()
     }
 }
 
 abstract class PermissionDispatcher {
+    abstract val isFinishing: Boolean
     abstract val activity: FragmentActivity
+    abstract val resultLifecycle: ResultLifecycle
     private var mRechecked = hashMapOf<String, Int>()
-    private var mOnPermissionResults = hashMapOf<Int, (Array<out String>, IntArray) -> Unit>()
-    private var mActivityResults = hashMapOf<Int, (Int, Intent?) -> Unit>()
 
     val packageName: String get() = activity.packageName
 
@@ -202,32 +180,11 @@ abstract class PermissionDispatcher {
     abstract fun requestPermission(permissions: Array<out String>, requestCode: Int)
 
     fun onPermissionResult(code: Int, callback: (Array<out String>, IntArray) -> Unit) {
-        mOnPermissionResults[code] = callback
+        resultLifecycle.onPermissionsResult(code, callback)
     }
 
     fun onActivityResult(code: Int, callback: (Int, Intent?) -> Unit) {
-        mActivityResults[code] = callback
-    }
-
-    fun handlePermissionResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        mOnPermissionResults[requestCode]?.also {
-            it(permissions, grantResults)
-        }
-    }
-
-    fun handleActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        mActivityResults[requestCode]?.also {
-            it(resultCode, data)
-        }
-    }
-
-    fun clear() {
-        mOnPermissionResults.clear()
-        mActivityResults.clear()
+        resultLifecycle.onActivityResult(code, callback)
     }
 
     fun increaseRecheck(permissions: Array<out String>) {
@@ -244,7 +201,12 @@ abstract class PermissionDispatcher {
     }
 }
 
-private class ActivityDispatcher(override val activity: FragmentActivity) : PermissionDispatcher() {
+private class ActivityDispatcher(
+        override val activity: FragmentActivity,
+        override val resultLifecycle: ResultLifecycle
+) : PermissionDispatcher() {
+    override val isFinishing: Boolean
+        get() = activity.isFinishing
 
     override fun startActivityForResult(intent: Intent, requestCode: Int) {
         activity.startActivityForResult(intent, requestCode)
@@ -255,7 +217,13 @@ private class ActivityDispatcher(override val activity: FragmentActivity) : Perm
     }
 }
 
-private class FragmentDispatcher(val fragment: Fragment) : PermissionDispatcher() {
+private class FragmentDispatcher(
+        val fragment: Fragment,
+        override val resultLifecycle: ResultLifecycle
+) : PermissionDispatcher() {
+    override val isFinishing: Boolean
+        get() = activity.isFinishing || !fragment.isAdded || fragment.isDetached
+
     override val activity: FragmentActivity
         get() = fragment.requireActivity()
 
@@ -269,10 +237,10 @@ private class FragmentDispatcher(val fragment: Fragment) : PermissionDispatcher(
 }
 
 abstract class PermissionRequest(
-    vararg permission: String,
-    private val options: PermissionSettingOptions?,
-    protected val dispatcher: PermissionDispatcher,
-    protected val onPermission: PermissionRequest.(Boolean) -> Unit
+        vararg permission: String,
+        private val options: PermissionSettingOptions?,
+        protected val dispatcher: PermissionDispatcher,
+        protected val onPermission: PermissionRequest.(Boolean) -> Unit
 ) : View.OnClickListener {
     private var mOpenSettingDialog: AlertDialog? = null
     val permissions = permission
@@ -287,8 +255,8 @@ abstract class PermissionRequest(
             }
 
             val isAllowed =
-                if (checkAll) grantResults.all { it == PackageManager.PERMISSION_GRANTED }
-                else grantResults.any { it == PackageManager.PERMISSION_GRANTED }
+                    if (checkAll) grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+                    else grantResults.any { it == PackageManager.PERMISSION_GRANTED }
 
             onPermission(isAllowed)
             if (isAllowed) dispatcher.clearRechecked(permissions)
@@ -318,8 +286,8 @@ abstract class PermissionRequest(
 
     private fun shouldShowSettings(permissions: Array<out String>): Boolean {
         return ActivityCompat.shouldShowRequestPermissionRationale(
-            dispatcher.activity,
-            permissions.first()
+                dispatcher.activity,
+                permissions.first()
         ) || dispatcher.hasRecheck(permissions)
     }
 
@@ -335,8 +303,8 @@ abstract class PermissionRequest(
     protected fun isAnyAllowed(vararg permissions: String): Boolean {
         return permissions.any {
             ContextCompat.checkSelfPermission(
-                dispatcher.activity,
-                it
+                    dispatcher.activity,
+                    it
             ) == PackageManager.PERMISSION_GRANTED
         }
     }
@@ -344,8 +312,8 @@ abstract class PermissionRequest(
     protected fun isAllAllowed(vararg permissions: String): Boolean {
         return permissions.all {
             ContextCompat.checkSelfPermission(
-                dispatcher.activity,
-                it
+                    dispatcher.activity,
+                    it
             ) == PackageManager.PERMISSION_GRANTED
         }
     }
@@ -354,39 +322,40 @@ abstract class PermissionRequest(
         if (mOpenSettingDialog == null) {
             val settingOptions = options ?: PermissionSettingOptions()
             mOpenSettingDialog = AlertDialog.Builder(dispatcher.activity)
-                .setTitle(settingOptions.titleDenied)
-                .setMessage(settingOptions.messageDenied)
-                .setPositiveButton(settingOptions.positive) { _: DialogInterface, _: Int ->
-                    openSetting()
-                }
-                .create()
+                    .setTitle(settingOptions.titleDenied)
+                    .setMessage(settingOptions.messageDenied)
+                    .setPositiveButton(settingOptions.positive) { _: DialogInterface, _: Int ->
+                        openSetting()
+                    }
+                    .create()
         }
         mOpenSettingDialog!!.show()
     }
 
     private fun openSetting() {
         val intent = Intent(
-            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-            Uri.parse("package:" + dispatcher.packageName)
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:" + dispatcher.packageName)
         )
         dispatcher.startActivityForResult(intent, requestCode)
     }
 }
 
 class PermissionRequestImpl(
-    vararg permission: String,
-    options: PermissionSettingOptions?,
-    dispatcher: PermissionDispatcher,
-    onPermission: PermissionRequest.(Boolean) -> Unit
+        vararg permission: String,
+        options: PermissionSettingOptions?,
+        dispatcher: PermissionDispatcher,
+        onPermission: PermissionRequest.(Boolean) -> Unit
 ) : PermissionRequest(
-    *permission,
-    options = options,
-    dispatcher = dispatcher,
-    onPermission = onPermission
+        *permission,
+        options = options,
+        dispatcher = dispatcher,
+        onPermission = onPermission
 ) {
     override val checkAll: Boolean = false
 
     override fun request() {
+        if (dispatcher.isFinishing) return
         if (permissions.isEmpty()) throw RuntimeException("No permission to check")
 
         if (isAllAllowed(*permissions)) {
@@ -399,15 +368,15 @@ class PermissionRequestImpl(
 }
 
 class PermissionRequestAnyImpl(
-    vararg permission: String,
-    options: PermissionSettingOptions?,
-    dispatcher: PermissionDispatcher,
-    onPermission: PermissionRequest.(Boolean) -> Unit
+        vararg permission: String,
+        options: PermissionSettingOptions?,
+        dispatcher: PermissionDispatcher,
+        onPermission: PermissionRequest.(Boolean) -> Unit
 ) : PermissionRequest(
-    *permission,
-    options = options,
-    dispatcher = dispatcher,
-    onPermission = onPermission
+        *permission,
+        options = options,
+        dispatcher = dispatcher,
+        onPermission = onPermission
 ) {
     override val checkAll: Boolean = true
 
@@ -426,8 +395,8 @@ class PermissionRequestAnyImpl(
             }
 
             if (permissions.any {
-                    !ActivityCompat.shouldShowRequestPermissionRationale(dispatcher.activity, it)
-                }) {
+                        !ActivityCompat.shouldShowRequestPermissionRationale(dispatcher.activity, it)
+                    }) {
                 onPermission(true)
                 return
             }

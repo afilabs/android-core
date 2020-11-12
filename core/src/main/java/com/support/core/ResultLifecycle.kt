@@ -7,21 +7,7 @@ interface ResultOwner {
     val resultLife: ResultLifecycle
 }
 
-const val REQUEST_FOR_RESULT_INSTANTLY = 17491
-
 interface ResultLifecycle {
-    /**
-     * @see onInstantResult for alternate
-     */
-    @Deprecated("unused")
-    fun onActivityResult(requestCode: Int = REQUEST_FOR_RESULT_INSTANTLY, callback: (resultCode: Int, data: Intent?) -> Unit)
-
-    /**
-     * @see onInstantSuccessResult for alternate
-     */
-    @Deprecated("unused")
-    fun onActivitySuccessResult(requestCode: Int = REQUEST_FOR_RESULT_INSTANTLY, callback: (data: Intent?) -> Unit)
-
 
     /**
      * Registry onActivityResult for fragment or activity
@@ -32,124 +18,93 @@ interface ResultLifecycle {
      * @param resultCode Result code return from activity finished
      * @param data Result data return from activity finished
      */
-    fun onPeriodResult(requestCode: Int, callback: (resultCode: Int, data: Intent?) -> Unit)
+    fun onActivityResult(requestCode: Int, callback: (resultCode: Int, data: Intent?) -> Unit)
 
     /**
-     * Registry onActivityResult with result Activity.RESULT_OK received
-     * @see onPeriodResult for the same behavior
+     * Registry onActivityResult for fragment or activity just with success result
+     * @see onActivityResult for alternate
      */
-    fun onPeriodSuccessResult(requestCode: Int, callback: (data: Intent?) -> Unit)
+    fun onActivitySuccessResult(requestCode: Int, callback: (data: Intent?) -> Unit)
 
     /**
-     * Registry onActivityResult for fragment or activity
-     * It should be registry once at event for request such as onClick ...
-     * and will be un-registered after result received
-     *
-     * @param requestCode Request code to request an activity
-     * @param resultCode Result code return from activity finished
-     * @param data Result data return from activity finished
+     * Registry onPermissionsResult for fragment or activity
+     * It should be registry onCreate or onViewCreated if at fragment
+     * and alive until onDestroy (if activity) and onViewDestroyed (if fragment) called
+     * @param requestCode Request code of request
      */
-    @Deprecated("unused")
-    fun onInstantResult(requestCode: Int = REQUEST_FOR_RESULT_INSTANTLY, callback: (resultCode: Int, data: Intent?) -> Unit)
-
-    /**
-     * Registry onActivityResult with result Activity.RESULT_OK received
-     * @see onInstantResult for the same behavior
-     */
-    @Deprecated("unused")
-    fun onInstantSuccessResult(requestCode: Int = REQUEST_FOR_RESULT_INSTANTLY, callback: (data: Intent?) -> Unit)
-
     fun onPermissionsResult(requestCode: Int, callback: (permissions: Array<out String>, grantResults: IntArray) -> Unit)
-
 }
 
 class ResultRegistry : ResultLifecycle {
 
-    private val mPermissions = hashMapOf<Int, (Array<out String>, IntArray) -> Unit>()
-    private val mActivityResults = hashMapOf<Int, ActivityResultCallback>()
+    private var mPendingActivityResult: ActivityResult? = null
+    private var mPendingPermissionResult: PermissionResult? = null
+    private val mPermissionCallbacks = hashMapOf<Int, (Array<out String>, IntArray) -> Unit>()
+    private val mActivityResultCallbacks = hashMapOf<Int, ActivityResultCallback>()
 
     fun clear() {
-        mActivityResults.clear()
-        mPermissions.clear()
+        mPendingActivityResult = null
+        mPendingPermissionResult = null
+
+        mActivityResultCallbacks.clear()
+        mPermissionCallbacks.clear()
     }
 
     override fun onPermissionsResult(requestCode: Int, callback: (permissions: Array<out String>, grantResults: IntArray) -> Unit) {
-        mPermissions[requestCode] = callback
+        mPermissionCallbacks[requestCode] = callback
+        val result = mPendingPermissionResult ?: return
+        if (result.requestCode != requestCode) return
+        callback(result.permissions, result.grantResults)
+        mPendingPermissionResult = null
     }
 
     override fun onActivitySuccessResult(requestCode: Int, callback: (data: Intent?) -> Unit) {
-        mActivityResults[requestCode] = OnActivityInstantSuccessResult(callback)
+        onActivityResult(requestCode) { resultCode, data ->
+            if (resultCode == Activity.RESULT_OK) {
+                callback(data)
+            }
+        }
     }
 
     override fun onActivityResult(requestCode: Int, callback: (resultCode: Int, data: Intent?) -> Unit) {
-        mActivityResults[requestCode] = OnActivityInstantResult(callback)
-    }
-
-    override fun onInstantResult(requestCode: Int, callback: (resultCode: Int, data: Intent?) -> Unit) {
-        mActivityResults[requestCode] = OnActivityInstantResult(callback)
-    }
-
-    override fun onInstantSuccessResult(requestCode: Int, callback: (data: Intent?) -> Unit) {
-        mActivityResults[requestCode] = OnActivityInstantSuccessResult(callback)
-    }
-
-    override fun onPeriodResult(requestCode: Int, callback: (resultCode: Int, data: Intent?) -> Unit) {
-        mActivityResults[requestCode] = OnActivityResult(callback)
-    }
-
-    override fun onPeriodSuccessResult(requestCode: Int, callback: (data: Intent?) -> Unit) {
-        mActivityResults[requestCode] = OnActivitySuccessResult(callback)
+        mActivityResultCallbacks[requestCode] = callback
+        val result = mPendingActivityResult ?: return
+        if (result.requestCode != requestCode) return
+        callback(result.resultCode, result.data)
+        mPendingActivityResult = null
     }
 
     fun handleActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        mActivityResults[requestCode]?.also {
-            val callback = it
-            if (callback is ActivityInstantResultCallback) {
-                mActivityResults.remove(requestCode)
-            }
-
-            val shouldCallback =
-                (callback is SuccessResultCallback && resultCode == Activity.RESULT_OK)
-                        || callback !is SuccessResultCallback
-
-            if (shouldCallback) callback(resultCode, data)
+        val callback = mActivityResultCallbacks[requestCode]
+        if (callback != null) {
+            callback(resultCode, data)
+            mPendingActivityResult = null
+            return
         }
+        mPendingActivityResult = ActivityResult(requestCode, resultCode, data)
     }
 
     fun handlePermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        mPermissions[requestCode]?.invoke(permissions, grantResults)
-    }
-
-    private interface SuccessResultCallback
-
-    private interface ActivityResultCallback {
-        operator fun invoke(resultCode: Int, data: Intent?)
-    }
-
-    private interface ActivityInstantResultCallback : ActivityResultCallback
-
-    private class OnActivityResult(val function: (resultCode: Int, data: Intent?) -> Unit) : ActivityResultCallback {
-        override fun invoke(resultCode: Int, data: Intent?) {
-            function(resultCode, data)
+        val callback = mPermissionCallbacks[requestCode]
+        if (callback != null) {
+            callback(permissions, grantResults)
+            mPendingPermissionResult = null
+            return
         }
+        mPendingPermissionResult = PermissionResult(requestCode, permissions, grantResults)
     }
 
-    private class OnActivitySuccessResult(val function: (data: Intent?) -> Unit) : ActivityResultCallback, SuccessResultCallback {
-        override fun invoke(resultCode: Int, data: Intent?) {
-            function(data)
-        }
-    }
+    private data class ActivityResult(
+            val requestCode: Int,
+            val resultCode: Int,
+            val data: Intent?
+    )
 
-    private class OnActivityInstantResult(val callback: (resultCode: Int, data: Intent?) -> Unit) : ActivityInstantResultCallback {
-        override fun invoke(resultCode: Int, data: Intent?) {
-            callback(resultCode, data)
-        }
-    }
-
-    private class OnActivityInstantSuccessResult(val callback: (data: Intent?) -> Unit) : ActivityInstantResultCallback, SuccessResultCallback {
-        override fun invoke(resultCode: Int, data: Intent?) {
-            callback(data)
-        }
-    }
-
+    private class PermissionResult(
+            val requestCode: Int,
+            val permissions: Array<out String>,
+            val grantResults: IntArray
+    )
 }
+
+typealias ActivityResultCallback = (resultCode: Int, data: Intent?) -> Unit

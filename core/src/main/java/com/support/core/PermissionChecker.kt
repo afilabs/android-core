@@ -14,28 +14,32 @@ import com.support.core.base.BaseActivity
 import com.support.core.extension.safe
 
 class PermissionOptions(
-    val title: String = "Permission denied",
-    val message: String = "You need to allow permission to use this feature",
-    val positive: String = "Ok",
-    val cancelable: Boolean = true
+        val title: String = "Permission denied",
+        val message: String = "You need to allow permission to use this feature",
+        val positive: String = "Ok",
+        val cancelable: Boolean = true
 )
 
+/**
+ * Replace by {@link #com.support.core.PermissionAccessible}
+ */
+@Deprecated("unused")
 class PermissionChecker(private val activity: BaseActivity) {
 
     private var mRechecked = hashMapOf<Int, Int>()
 
     fun access(
-        vararg permissions: String,
-        options: PermissionOptions = PermissionOptions(),
-        onAccess: () -> Unit
+            vararg permissions: String,
+            options: PermissionOptions = PermissionOptions(),
+            onAccess: () -> Unit
     ) {
         check(*permissions, options = options) { if (it) onAccess() }
     }
 
     fun forceAccess(
-        vararg permissions: String,
-        options: PermissionOptions = PermissionOptions(),
-        onAccess: () -> Unit
+            vararg permissions: String,
+            options: PermissionOptions = PermissionOptions(),
+            onAccess: () -> Unit
     ) {
         check(*permissions, options = options) {
             if (!it) forceAccess(*permissions, options = options, onAccess = onAccess)
@@ -44,9 +48,9 @@ class PermissionChecker(private val activity: BaseActivity) {
     }
 
     fun check(
-        vararg permissions: String,
-        options: PermissionOptions = PermissionOptions(),
-        onPermission: (Boolean) -> Unit
+            vararg permissions: String,
+            options: PermissionOptions = PermissionOptions(),
+            onPermission: (Boolean) -> Unit
     ) {
         if (permissions.isEmpty()) throw RuntimeException("No permission to check")
 
@@ -59,9 +63,9 @@ class PermissionChecker(private val activity: BaseActivity) {
     }
 
     fun checkAny(
-        vararg permissions: String,
-        options: PermissionOptions = PermissionOptions(),
-        onPermission: (Boolean) -> Unit
+            vararg permissions: String,
+            options: PermissionOptions = PermissionOptions(),
+            onPermission: (Boolean) -> Unit
     ) {
         if (permissions.isEmpty()) throw RuntimeException("No permission to check")
 
@@ -77,8 +81,8 @@ class PermissionChecker(private val activity: BaseActivity) {
             }
 
             if (permissions.any {
-                    !ActivityCompat.shouldShowRequestPermissionRationale(activity, it)
-                }) {
+                        !ActivityCompat.shouldShowRequestPermissionRationale(activity, it)
+                    }) {
                 onPermission(true)
                 return
             }
@@ -89,18 +93,18 @@ class PermissionChecker(private val activity: BaseActivity) {
     }
 
     private fun checkOrShowSetting(
-        permissions: Array<out String>,
-        checkAll: Boolean,
-        options: PermissionOptions,
-        onPermission: (Boolean) -> Unit
+            permissions: Array<out String>,
+            checkAll: Boolean,
+            options: PermissionOptions,
+            onPermission: (Boolean) -> Unit
     ) {
         if (activity.isFinishing) return
         if (shouldShowSettings(permissions)) {
             showSuggestOpenSetting(
-                permissions,
-                checkAll,
-                options = options,
-                onPermission = onPermission
+                    permissions,
+                    checkAll,
+                    options = options,
+                    onPermission = onPermission
             )
         } else {
             request(permissions, checkAll, onPermission)
@@ -123,9 +127,9 @@ class PermissionChecker(private val activity: BaseActivity) {
     }
 
     private fun request(
-        permissions: Array<out String>,
-        checkAll: Boolean,
-        onPermission: (Boolean) -> Unit
+            permissions: Array<out String>,
+            checkAll: Boolean,
+            onPermission: (Boolean) -> Unit
     ) {
         val requestCode = requestCodeOf(permissions)
         activity.resultLife.onPermissionsResult(requestCode) { _, grantResults ->
@@ -135,8 +139,8 @@ class PermissionChecker(private val activity: BaseActivity) {
             }
 
             val isAllowed =
-                if (checkAll) grantResults.all { it == PackageManager.PERMISSION_GRANTED }
-                else grantResults.any { it == PackageManager.PERMISSION_GRANTED }
+                    if (checkAll) grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+                    else grantResults.any { it == PackageManager.PERMISSION_GRANTED }
 
             onPermission(isAllowed)
             if (isAllowed) clearRechecked(permissions)
@@ -166,32 +170,32 @@ class PermissionChecker(private val activity: BaseActivity) {
     }
 
     private fun showSuggestOpenSetting(
-        permissions: Array<out String>,
-        checkAll: Boolean,
-        options: PermissionOptions,
-        onPermission: (Boolean) -> Unit
+            permissions: Array<out String>,
+            checkAll: Boolean,
+            options: PermissionOptions,
+            onPermission: (Boolean) -> Unit
     ) {
         AlertDialog.Builder(activity)
-            .setTitle(options.title)
-            .setMessage(options.message)
-            .setCancelable(options.cancelable)
-            .setPositiveButton(options.positive) { _: DialogInterface, _: Int ->
-                openSetting(permissions, checkAll, onPermission)
-            }
-            .create().show()
+                .setTitle(options.title)
+                .setMessage(options.message)
+                .setCancelable(options.cancelable)
+                .setPositiveButton(options.positive) { _: DialogInterface, _: Int ->
+                    openSetting(permissions, checkAll, onPermission)
+                }
+                .create().show()
     }
 
     private fun openSetting(
-        permissions: Array<out String>,
-        checkAll: Boolean,
-        onPermission: (Boolean) -> Unit
+            permissions: Array<out String>,
+            checkAll: Boolean,
+            onPermission: (Boolean) -> Unit
     ) {
         val intent = Intent(
-            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-            Uri.parse("package:" + activity.packageName)
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:" + activity.packageName)
         )
         val requestCode = requestCodeOf(permissions)
-        activity.resultLife.onInstantResult(requestCode) { _, _ ->
+        activity.resultLife.onActivityResult(requestCode) { _, _ ->
             val isAllowed = if (checkAll) isAllAllowed(*permissions) else isAnyAllowed(*permissions)
             onPermission(isAllowed)
             if (isAllowed) clearRechecked(permissions)

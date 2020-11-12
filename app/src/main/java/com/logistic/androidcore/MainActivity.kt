@@ -3,9 +3,11 @@ package com.logistic.androidcore
 import android.content.ContentValues
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
 import android.provider.MediaStore
 import android.util.Log
 import com.support.core.AppExecutors
+import com.support.core.PermissionAccessibleImpl
 import com.support.core.base.BaseActivity
 import com.support.core.event.LocalEvent
 import com.support.core.extension.lazyNone
@@ -26,28 +28,28 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
 
     private val fileScale: FileScale by lazyNone {
         FileScale(
-            fileCache, FileBitmap(this)
+                fileCache, FileBitmap(this)
         )
     }
     private val authRepo: AuthRepository by inject()
+    private val permissionAccessible by lazyNone { PermissionAccessibleImpl(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 //       testLocalEvent()
         testOpenCamera()
-        btnHelloWorld2.text = authRepo.name
+//        btnHelloWorld2.text = authRepo.name
+//        testOpenGallery()
     }
 
     private fun testOpenCamera() {
-        btnHelloWorld.setOnClickListener {
-            permissionChecker.access(
+        btnHelloWorld.setOnClickListener(permissionAccessible.access(
                 android.Manifest.permission.READ_EXTERNAL_STORAGE,
                 android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 android.Manifest.permission.CAMERA
-            ) {
-                openCamera()
-            }
-        }
+        ) {
+            openCamera()
+        })
     }
 
     private fun testLocalEvent() {
@@ -63,12 +65,24 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
         }
     }
 
-    fun openGallery() {
-        resultLife.onInstantSuccessResult(100) { data ->
-            data?.data?.also {
-                AppExecutors.diskIO.execute { fileScale.execute(it, true) }
+    private fun testOpenGallery() {
+        Handler().postDelayed({
+            resultLife.onActivitySuccessResult(100) { data ->
+                data?.data?.also {
+                    AppExecutors.diskIO.execute { fileScale.execute(it, true) }
+                }
             }
-        }
+            btnHelloWorld.setOnClickListener {
+                openGallery()
+            }
+        }, 2000)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+    }
+
+    fun openGallery() {
         val intent = Intent()
         intent.type = "image/*"
         intent.action = Intent.ACTION_GET_CONTENT
@@ -77,12 +91,12 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
 
     fun openCamera() {
         val imageURI = contentResolver.insert(
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-            ContentValues().apply {
-                put(MediaStore.Images.Media.TITLE, "New Picture")
-                put(MediaStore.Images.Media.DESCRIPTION, "From your Camera")
-            })
-        resultLife.onInstantSuccessResult(101) {
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                ContentValues().apply {
+                    put(MediaStore.Images.Media.TITLE, "New Picture")
+                    put(MediaStore.Images.Media.DESCRIPTION, "From your Camera")
+                })
+        resultLife.onActivitySuccessResult(101) {
             try {
                 AppExecutors.diskIO.execute {
                     try {

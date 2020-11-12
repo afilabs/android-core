@@ -30,12 +30,12 @@ inline fun <reified T : FragmentActivity> Dispatcher.open(
     return this
 }
 
-inline fun <reified T : FragmentActivity> Dispatcher.openForResult(args: Bundle? = null): Dispatcher {
+inline fun <reified T : FragmentActivity> Dispatcher.openForResult(requestCode: Int, args: Bundle? = null): Dispatcher {
     when (this) {
         is AppCompatActivity -> startActivityForResult(Intent(this, T::class.java)
-                .putArgs(args), REQUEST_FOR_RESULT_INSTANTLY)
+                .putArgs(args), requestCode)
         is Fragment -> startActivityForResult(Intent(requireContext(), T::class.java)
-                .putArgs(args), REQUEST_FOR_RESULT_INSTANTLY)
+                .putArgs(args), requestCode)
     }
     return this
 }
