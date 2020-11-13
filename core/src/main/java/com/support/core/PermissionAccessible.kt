@@ -17,36 +17,42 @@ import com.support.core.extension.safe
 
 interface PermissionAccessible {
     fun check(
+            requestCode: Int,
             vararg permissions: String,
             options: PermissionSettingOptions? = null,
             onPermission: (Boolean) -> Unit
     ): PermissionRequest
 
     fun access(
+            requestCode: Int,
             vararg permissions: String,
             options: PermissionSettingOptions? = null,
             onPermission: () -> Unit
     ): PermissionRequest
 
     fun checkAny(
+            requestCode: Int,
             vararg permissions: String,
             options: PermissionSettingOptions? = null,
             onPermission: (Boolean) -> Unit
     ): PermissionRequest
 
     fun accessAny(
+            requestCode: Int,
             vararg permissions: String,
             options: PermissionSettingOptions? = null,
             onPermission: () -> Unit
     ): PermissionRequest
 
     fun forceAccess(
+            requestCode: Int,
             vararg permissions: String,
             options: PermissionSettingOptions? = null,
             onPermission: () -> Unit
     ): PermissionRequest
 
     fun forceAccessAny(
+            requestCode: Int,
             vararg permissions: String,
             options: PermissionSettingOptions? = null,
             onPermission: () -> Unit
@@ -81,12 +87,14 @@ class PermissionAccessibleImpl : PermissionAccessible {
     }
 
     override fun check(
+            requestCode: Int,
             vararg permissions: String,
             options: PermissionSettingOptions?,
             onPermission: (Boolean) -> Unit
     ): PermissionRequest {
         return PermissionRequestImpl(
                 *permissions,
+                requestCode = requestCode,
                 options = options,
                 dispatcher = mDispatcher,
                 onPermission = { onPermission(it) }
@@ -94,12 +102,14 @@ class PermissionAccessibleImpl : PermissionAccessible {
     }
 
     override fun access(
+            requestCode: Int,
             vararg permissions: String,
             options: PermissionSettingOptions?,
             onPermission: () -> Unit
     ): PermissionRequest {
         return PermissionRequestImpl(
                 *permissions,
+                requestCode = requestCode,
                 options = options,
                 dispatcher = mDispatcher,
                 onPermission = {
@@ -108,12 +118,14 @@ class PermissionAccessibleImpl : PermissionAccessible {
     }
 
     override fun checkAny(
+            requestCode: Int,
             vararg permissions: String,
             options: PermissionSettingOptions?,
             onPermission: (Boolean) -> Unit
     ): PermissionRequest {
         return PermissionRequestImpl(
                 *permissions,
+                requestCode = requestCode,
                 options = options,
                 dispatcher = mDispatcher,
                 onPermission = { onPermission(it) }
@@ -121,12 +133,14 @@ class PermissionAccessibleImpl : PermissionAccessible {
     }
 
     override fun accessAny(
+            requestCode: Int,
             vararg permissions: String,
             options: PermissionSettingOptions?,
             onPermission: () -> Unit
     ): PermissionRequest {
         return PermissionRequestAnyImpl(
                 *permissions,
+                requestCode = requestCode,
                 options = options,
                 dispatcher = mDispatcher,
                 onPermission = {
@@ -136,12 +150,14 @@ class PermissionAccessibleImpl : PermissionAccessible {
     }
 
     override fun forceAccess(
+            requestCode: Int,
             vararg permissions: String,
             options: PermissionSettingOptions?,
             onPermission: () -> Unit
     ): PermissionRequest {
         return PermissionRequestImpl(
                 *permissions,
+                requestCode = requestCode,
                 options = options,
                 dispatcher = mDispatcher,
                 onPermission = {
@@ -152,12 +168,14 @@ class PermissionAccessibleImpl : PermissionAccessible {
     }
 
     override fun forceAccessAny(
+            requestCode: Int,
             vararg permissions: String,
             options: PermissionSettingOptions?,
             onPermission: () -> Unit
     ): PermissionRequest {
         return PermissionRequestAnyImpl(
                 *permissions,
+                requestCode = requestCode,
                 options = options,
                 dispatcher = mDispatcher,
                 onPermission = {
@@ -238,13 +256,13 @@ private class FragmentDispatcher(
 
 abstract class PermissionRequest(
         vararg permission: String,
+        private val requestCode: Int,
         private val options: PermissionSettingOptions?,
         protected val dispatcher: PermissionDispatcher,
         protected val onPermission: PermissionRequest.(Boolean) -> Unit
-) : View.OnClickListener {
+) : View.OnClickListener, () -> Unit {
     private var mOpenSettingDialog: AlertDialog? = null
     val permissions = permission
-    private val requestCode = requestCodeOf(permissions)
     abstract val checkAll: Boolean
 
     init {
@@ -275,6 +293,10 @@ abstract class PermissionRequest(
         request()
     }
 
+    override fun invoke() {
+        request()
+    }
+
     protected fun checkOrShowSetting() {
         if (shouldShowSettings(permissions)) {
             showSuggestOpenSetting()
@@ -289,15 +311,6 @@ abstract class PermissionRequest(
                 dispatcher.activity,
                 permissions.first()
         ) || dispatcher.hasRecheck(permissions)
-    }
-
-    private fun requestCodeOf(permissions: Array<out String>): Int {
-        val prime = 31
-        var result = 1
-        for (s in permissions) {
-            result = result * prime + s.hashCode()
-        }
-        return (result and 0xffff)
     }
 
     protected fun isAnyAllowed(vararg permissions: String): Boolean {
@@ -343,16 +356,18 @@ abstract class PermissionRequest(
 
 class PermissionRequestImpl(
         vararg permission: String,
+        requestCode: Int,
         options: PermissionSettingOptions?,
         dispatcher: PermissionDispatcher,
         onPermission: PermissionRequest.(Boolean) -> Unit
 ) : PermissionRequest(
         *permission,
+        requestCode = requestCode,
         options = options,
         dispatcher = dispatcher,
         onPermission = onPermission
 ) {
-    override val checkAll: Boolean = false
+    override val checkAll: Boolean = true
 
     override fun request() {
         if (dispatcher.isFinishing) return
@@ -369,16 +384,18 @@ class PermissionRequestImpl(
 
 class PermissionRequestAnyImpl(
         vararg permission: String,
+        requestCode: Int,
         options: PermissionSettingOptions?,
         dispatcher: PermissionDispatcher,
         onPermission: PermissionRequest.(Boolean) -> Unit
 ) : PermissionRequest(
         *permission,
+        requestCode = requestCode,
         options = options,
         dispatcher = dispatcher,
         onPermission = onPermission
 ) {
-    override val checkAll: Boolean = true
+    override val checkAll: Boolean = false
 
     override fun request() {
         if (permissions.isEmpty()) throw RuntimeException("No permission to check")

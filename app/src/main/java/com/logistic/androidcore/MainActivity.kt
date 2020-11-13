@@ -6,11 +6,14 @@ import android.os.Bundle
 import android.os.Handler
 import android.provider.MediaStore
 import android.util.Log
+import androidx.lifecycle.MutableLiveData
 import com.support.core.AppExecutors
 import com.support.core.PermissionAccessibleImpl
 import com.support.core.base.BaseActivity
 import com.support.core.event.LocalEvent
+import com.support.core.extension.call
 import com.support.core.extension.lazyNone
+import com.support.core.extension.subscribe
 import com.support.core.helpers.FileBitmap
 import com.support.core.helpers.FileCache
 import com.support.core.helpers.FileScale
@@ -33,6 +36,7 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
     }
     private val authRepo: AuthRepository by inject()
     private val permissionAccessible by lazyNone { PermissionAccessibleImpl(this) }
+    private val testOpenCameraLiveData = MutableLiveData<Any>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,13 +47,16 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
     }
 
     private fun testOpenCamera() {
-        btnHelloWorld.setOnClickListener(permissionAccessible.access(
-                android.Manifest.permission.READ_EXTERNAL_STORAGE,
-                android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                android.Manifest.permission.CAMERA
-        ) {
-            openCamera()
-        })
+        testOpenCameraLiveData.subscribe(this) {
+            btnHelloWorld.setOnClickListener(permissionAccessible.access(0,
+                    android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    android.Manifest.permission.CAMERA
+            ) {
+                openCamera()
+            })
+        }
+        testOpenCameraLiveData.call()
     }
 
     private fun testLocalEvent() {
