@@ -27,7 +27,7 @@ class OptionDialog(context: Context) : Dialog(context) {
             singleTask = cbSingleTask.isChecked
     )
 
-    fun createNavOption(): NavOptions? {
+    fun createNavOption(): NavOptions {
         return doCreateNavOptions().also {
             edtPopupTo.setText(when (mDefaultNavOptions.popupTo) {
                 AFragment::class -> "A"
@@ -39,6 +39,24 @@ class OptionDialog(context: Context) : Dialog(context) {
             cbReuseInstance.isChecked = mDefaultNavOptions.reuseInstance
             cbSingleTask.isChecked = mDefaultNavOptions.singleTask
         }
+    }
+
+    override fun show() {
+        btnSetAsDefault.text = "Set as default"
+        btnSetAsDefault.setOnClickListener {
+            mDefaultNavOptions = doCreateNavOptions()
+            dismiss()
+        }
+        super.show()
+    }
+
+    fun show(function: (NavOptions) -> Unit) {
+        btnSetAsDefault.text = "Execute Pop back stack"
+        btnSetAsDefault.setOnClickListener {
+            function(createNavOption())
+            dismiss()
+        }
+        super.show()
     }
 
     private fun getPopupTo(toString: String): KClass<out Fragment>? {

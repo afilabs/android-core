@@ -4,12 +4,13 @@ import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
+import androidx.fragment.app.FragmentTransaction
+import com.support.core.extension.safe
 import com.support.core.functional.Backable
 import com.support.core.navigation.Destination
 import com.support.core.navigation.NavOptions
 import com.support.core.navigation.Navigator
 import com.support.core.navigation.notifyArgumentChangeIfNeeded
-import java.util.*
 import kotlin.reflect.KClass
 
 class FragmentNavigator(
@@ -33,10 +34,6 @@ class FragmentNavigator(
         Log.i("Stack", mStack.toString())
     }
 
-    override fun onCreateLog(): String {
-        return mStack.toString()
-    }
-
     override fun navigate(kClass: KClass<out Fragment>, args: Bundle?, navOptions: NavOptions?) {
         transaction {
 
@@ -50,23 +47,29 @@ class FragmentNavigator(
             val lastVisible = mStack.last
             setNavigateAnim(destination, lastVisible, mStack.isEmpty)
 
-            val fragmentRemoves = if (navOptions?.popupTo == null) emptyList()
-            else popBackStack(navOptions, destination.tagId)
-
-            lastVisible
-                    ?.requireFragment
-                    ?.takeIf { !fragmentRemoves.contains(it) }
-                    ?.also { hide(it) }
-
-            fragmentRemoves.forEach { remove(it) }
+            executePopFragment(fragment, lastVisible?.requireFragment, doPopBackStack(navOptions))
 
             if (fragment.isAdded) show(fragment)
             else add(container, fragment, destination.tag)
 
             mStack.push(destination)
             notifyDestinationChange(kClass)
-            Log.i("Stack", mStack.toString())
         }
+    }
+
+    private fun FragmentTransaction.executePopFragment(
+            enter: Fragment,
+            exit: Fragment?,
+            removes: List<DestinationWrapper>
+    ) {
+        var exitInRemoves = false
+
+        removes.forEach {
+            if (it.fragment != enter) remove(it.fragment)
+            if (it.fragment == exit) exitInRemoves = true
+        }
+
+        if (!exitInRemoves && exit != null) hide(exit)
     }
 
     private fun lookupDestination(
@@ -105,31 +108,63 @@ class FragmentNavigator(
         return DestinationWrapper(des, des.fragment ?: des.createFragment())
     }
 
-    private fun popBackStack(
-            navOptions: NavOptions,
-            ignoreTagId: Long
-    ): ArrayList<Fragment> {
-        val removes = arrayListOf<Fragment>()
+    private fun doPopBackStack(
+            navOptions: NavOptions?
+    ): List<DestinationWrapper> {
+        navOptions?.popupTo ?: return emptyList()
+        return doPopBackStack(navOptions.popupTo, navOptions.inclusive.safe())
+    }
+
+    private fun doPopBackStack(
+            popupTo: KClass<out Fragment>,
+            inclusive: Boolean
+    ): List<DestinationWrapper> {
+        val removes = arrayListOf<DestinationWrapper>()
 
         mStack.popBack(object : DestinationStack.OnPopListener {
             override fun shouldNext(des: Destination): Boolean {
-                return des.kClass != navOptions.popupTo
+                return des.kClass != popupTo
             }
 
             override fun shouldPop(des: Destination): Boolean {
-                if (des.kClass != navOptions.popupTo) return true
-                if (navOptions.inclusive) return true
+                if (des.kClass != popupTo) return true
+                if (inclusive) return true
                 return false
             }
 
             override fun onPop(des: Destination) {
-                if (des.tagId == ignoreTagId) return
                 if (des.keepInstance) return
-                removes.add(des.requireFragment)
+                removes.add(DestinationWrapper(des, des.requireFragment))
             }
         })
 
-        return removes
+        return removes.filter {
+            !mStack.hasTagId(it.destination.tagId)
+        }
+    }
+
+    override fun popBackStack(popupTo: KClass<out Fragment>, inclusive: Boolean): Boolean {
+        if (mStack.size <= 1) return false
+        val target = mStack.find(popupTo) ?: return false
+
+        val exitDes = mStack.last!!
+
+        if (target == exitDes) {
+            if (!inclusive) return false
+            return navigateUp()
+        }
+
+        val exitFragment = exitDes.requireFragment
+        val removes = doPopBackStack(popupTo, inclusive)
+        transaction {
+            val enterDes = if (mStack.isEmpty) target else mStack.last!!
+            val enterFragment = enterDes.requireFragment
+            executePopFragment(enterFragment, exitFragment, removes)
+            show(enterFragment)
+            if (mStack.isEmpty) mStack.push(enterDes)
+            notifyDestinationChange(enterDes.kClass)
+        }
+        return true
     }
 
     override fun navigateUp(): Boolean {
@@ -153,8 +188,11 @@ class FragmentNavigator(
                 notifyDestinationChange(fragment.javaClass.kotlin)
             }
         }
-        Log.i("Stack", mStack.toString())
         return previous != null
     }
 
+    override fun notifyDestinationChange(kClass: KClass<out Fragment>) {
+        super.notifyDestinationChange(kClass)
+        Log.i("Stack", mStack.toString())
+    }
 }

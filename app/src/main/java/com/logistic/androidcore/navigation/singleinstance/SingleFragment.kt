@@ -46,7 +46,7 @@ class DSingleFragment : NavigationFragment(), ArgumentChangeable {
         navigator.navigate(ASingleFragment::class, navOptions = NavOptions(
                 popupTo = ASingleFragment::class,
                 singleTask = true,
-                inclusive = false
+                inclusive = true
         ),args = bundleOf("key" to "Hello world ${System.currentTimeMillis()}"))
     }
 

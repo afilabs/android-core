@@ -13,14 +13,6 @@ class MyApplication : Application() {
         dependencies {
             single<AuthRepository> { AuthRepository1() }
             single<AuthRepository>(override = true) { AuthRepository2() }
-
-            factory<FragmentNavigatorFactory> {
-                object : FragmentNavigatorFactory {
-                    override fun create(manager: FragmentManager, containerId: Int): Navigator {
-                        return FragmentNavigator(manager, containerId)
-                    }
-                }
-            }
         }
     }
 }

@@ -70,12 +70,8 @@ abstract class Navigator(private val fragmentManager: FragmentManager, @IdRes va
         fragmentManager.lifecycle.addObserver(mObserver)
     }
 
-    protected fun notifyDestinationChange(kClass: KClass<out Fragment>) {
-        mDestinationChangeListeners.forEach { it.onDestinationChanged(kClass,onCreateLog()) }
-    }
-
-    protected open fun onCreateLog(): String {
-        return ""
+    protected open fun notifyDestinationChange(kClass: KClass<out Fragment>) {
+        mDestinationChangeListeners.forEach { it.onDestinationChanged(kClass) }
     }
 
     fun addDestinationChangeListener(function: OnDestinationChangeListener) {
@@ -95,6 +91,10 @@ abstract class Navigator(private val fragmentManager: FragmentManager, @IdRes va
 
     abstract fun navigateUp(): Boolean
 
+    open fun popBackStack(popupTo: KClass<out Fragment>, inclusive: Boolean): Boolean {
+        throw UnsupportedOperationException("Not support, please use FragmentNavigator version 2")
+    }
+
     @CallSuper
     protected open fun onSaveInstance(state: Bundle) {
         mExecutable = false
@@ -107,18 +107,18 @@ abstract class Navigator(private val fragmentManager: FragmentManager, @IdRes va
     }
 
     protected fun FragmentTransaction.setNavigateAnim(
-            destination: Destination,
-            visible: Destination?,
+            enter: Destination,
+            exit: Destination?,
             isStart: Boolean
     ) {
-        setCustomAnimations(if (isStart) 0 else destination.animEnter, visible?.animExit ?: 0)
+        setCustomAnimations(if (isStart) 0 else enter.animEnter, exit?.animExit ?: 0)
     }
 
     protected fun FragmentTransaction.setPopupAnim(
-            current: Destination,
-            previous: Destination?
+            exit: Destination,
+            enter: Destination?
     ) {
-        setCustomAnimations(previous?.animPopEnter ?: 0, current.animPopExit)
+        setCustomAnimations(enter?.animPopEnter ?: 0, exit.animPopExit)
     }
 
     private inner class TransactionManager {

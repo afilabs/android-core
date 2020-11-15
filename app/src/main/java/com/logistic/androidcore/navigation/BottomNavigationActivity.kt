@@ -24,6 +24,13 @@ class BottomNavigationActivity : AppCompatActivity(R.layout.activity_navigation_
             mOptionDialog.show()
         }
 
+        btnPopupTo.setOnClickListener {
+            mOptionDialog.show {
+                val popupTo = it.popupTo ?: return@show
+                navigator.popBackStack(popupTo, it.inclusive)
+            }
+        }
+
         btnA.setOnClickListener {
             navigator.navigate(AFragment::class, navOptions = createNavOptions())
         }
@@ -36,9 +43,8 @@ class BottomNavigationActivity : AppCompatActivity(R.layout.activity_navigation_
             navigator.navigate(CFragment::class, navOptions = createNavOptions())
         }
 
-        navigator.addDestinationChangeListener { it, log ->
+        navigator.addDestinationChangeListener { it ->
             Log.e("Destination", it.simpleName ?: "Unk")
-            txtInfo.text = log
         }
     }
 

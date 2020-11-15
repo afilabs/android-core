@@ -6,17 +6,31 @@
     android:orientation="vertical"
     tools:context=".TestNavigationActivity">
 
-    <Button
-        android:id="@+id/btnOption"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Edit Navigation options"
-        android:textAllCaps="false" />
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnOption"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Edit Navigation options"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/btnPopupTo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Edit Options to popup"
+            android:textAllCaps="false" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/txtInfo"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        tools:text="sdfsdfsdf" />
 
     <fragment
         android:id="@+id/containerNavigation"
