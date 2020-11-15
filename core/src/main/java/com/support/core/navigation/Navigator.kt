@@ -7,6 +7,7 @@ import androidx.fragment.app.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.savedstate.SavedStateRegistry
 import com.support.core.extension.registry
 import com.support.core.functional.SavedStateCallback
 import java.util.*
@@ -31,15 +32,19 @@ abstract class Navigator(private val fragmentManager: FragmentManager, @IdRes va
 
     // Fix for case "Can not perform this action after onSaveInstanceState"
     private val mObserver = object : LifecycleEventObserver {
+        private var mSavedStateRegistry: SavedStateRegistry? = null
+
         override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    fragmentManager.savedStateRegistry.registry(KEY_SAVED_STATE, mSavedStateListener)
+                    mSavedStateRegistry = fragmentManager.savedStateRegistry
+                    mSavedStateRegistry!!.registry(KEY_SAVED_STATE, mSavedStateListener)
                 }
                 Lifecycle.Event.ON_DESTROY -> {
-                    fragmentManager.savedStateRegistry.unregisterSavedStateProvider(KEY_SAVED_STATE)
                     source.lifecycle.removeObserver(this)
+                    mSavedStateRegistry?.unregisterSavedStateProvider(KEY_SAVED_STATE)
                     mDestinationChangeListeners.clear()
+                    mSavedStateRegistry = null
                 }
                 Lifecycle.Event.ON_START -> {
                     if (!mExecutable) {
@@ -90,16 +95,16 @@ abstract class Navigator(private val fragmentManager: FragmentManager, @IdRes va
     }
 
     protected fun FragmentTransaction.setNavigateAnim(
-        destination: Destination,
-        visible: Destination?,
-        isStart: Boolean
+            destination: Destination,
+            visible: Destination?,
+            isStart: Boolean
     ) {
         setCustomAnimations(if (isStart) 0 else destination.animEnter, visible?.animExit ?: 0)
     }
 
     protected fun FragmentTransaction.setPopupAnim(
-        current: Destination,
-        previous: Destination?
+            current: Destination,
+            previous: Destination?
     ) {
         setCustomAnimations(previous?.animPopEnter ?: 0, current.animPopExit)
     }

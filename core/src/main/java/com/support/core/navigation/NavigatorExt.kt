@@ -32,10 +32,7 @@ fun Navigator.navigateToHost(@IdRes id: Int, destination: KClass<out Fragment>, 
 }
 
 fun FragmentActivity.findNavigator(@IdRes containerId: Int = 0): Navigator {
-    if (this is NavigationOwner) {
-        if (containerId == 0) return this.navigator
-        else if (containerId == this.navigator.container) return this.navigator
-    }
+    if (this is NavigationOwner && containerId == 0) return navigator
 
     if (containerId == 0) return supportFragmentManager.fragments.find { it is NavHostFragment }?.findNavigator()
             ?: error("Not found navigator")
@@ -45,10 +42,7 @@ fun FragmentActivity.findNavigator(@IdRes containerId: Int = 0): Navigator {
 }
 
 fun Fragment.findNavigator(@IdRes containerId: Int = 0): Navigator {
-    if (this is NavigationOwner) {
-        if (containerId == 0) return this.navigator
-        else if (containerId == this.navigator.container) return this.navigator
-    }
+    if (this is NavigationOwner && containerId == 0) return navigator
 
     if (containerId != 0) {
         val navigator =
