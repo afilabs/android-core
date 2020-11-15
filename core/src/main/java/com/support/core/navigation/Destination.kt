@@ -2,11 +2,12 @@ package com.support.core.navigation
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
+import com.support.core.extension.safe
 import kotlin.reflect.KClass
 
 class Destination(
         val kClass: KClass<out Fragment>,
-        private val tagId: Long,
+        val tagId: Long,
         val keepInstance: Boolean = false
 ) {
 
@@ -14,8 +15,19 @@ class Destination(
     var animPopEnter: Int = 0
     var animEnter: Int = 0
     var animExit: Int = 0
-    val tag: String =
-            "navigator:destination:${kClass.java.simpleName}:tag:${if (keepInstance) "single" else "new"}:$tagId"
+    val tag: String = DestinationTag.create(this)
+
+    constructor(kClass: KClass<out Fragment>,
+                tagId: Long,
+                navOptions: NavOptions?
+    ) : this(kClass, tagId, navOptions?.reuseInstance.safe()) {
+        if (navOptions != null) {
+            animEnter = navOptions.animEnter
+            animExit = navOptions.animExit
+            animPopEnter = navOptions.animPopEnter
+            animPopExit = navOptions.animPopExit
+        }
+    }
 
     private val mLog = "${kClass.java.simpleName}:$tagId"
 

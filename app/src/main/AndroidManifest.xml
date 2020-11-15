@@ -26,6 +26,7 @@
         <activity android:name=".TestActivity" />
         <activity android:name=".Test1Activity" />
         <activity android:name=".navigation.BottomNavigationActivity" />
+        <activity android:name=".navigation.NavigationSingleActivity" />
     </application>
 
 </manifest>

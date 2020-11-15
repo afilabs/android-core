@@ -21,8 +21,16 @@ abstract class Navigator(private val fragmentManager: FragmentManager, @IdRes va
     abstract val lastDestination: Destination?
     private val mTransactionManager = TransactionManager()
     private var mExecutable: Boolean = true
-
     private var mDestinationChangeListeners = arrayListOf<OnDestinationChangeListener>()
+
+    protected val Destination.requireFragment: Fragment
+        get() = fragment ?: error("Not found requireFragment $tag")
+
+    protected val Destination.fragment: Fragment?
+        get() = fragmentManager.findFragmentByTag(tag)
+
+    protected val KClass<out Fragment>.tagId: Long?
+        get() = DestinationTag.findTagId(fragmentManager, this)
 
     private val mSavedStateListener = object : SavedStateCallback {
         override fun onSavedState(): Bundle = Bundle().apply(::onSaveInstance)
@@ -63,7 +71,11 @@ abstract class Navigator(private val fragmentManager: FragmentManager, @IdRes va
     }
 
     protected fun notifyDestinationChange(kClass: KClass<out Fragment>) {
-        mDestinationChangeListeners.forEach { it.onDestinationChanged(kClass) }
+        mDestinationChangeListeners.forEach { it.onDestinationChanged(kClass,onCreateLog()) }
+    }
+
+    protected open fun onCreateLog(): String {
+        return ""
     }
 
     fun addDestinationChangeListener(function: OnDestinationChangeListener) {

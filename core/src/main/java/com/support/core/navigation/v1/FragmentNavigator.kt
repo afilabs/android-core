@@ -5,33 +5,21 @@ import android.util.Log
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.support.core.functional.Backable
-import com.support.core.navigation.*
+import com.support.core.navigation.Destination
+import com.support.core.navigation.NavOptions
+import com.support.core.navigation.Navigator
+import com.support.core.navigation.notifyArgumentChangeIfNeeded
 import java.util.*
 import kotlin.reflect.KClass
 
 class FragmentNavigator(
-    private val fragmentManager: FragmentManager,
+    fragmentManager: FragmentManager,
     container: Int
 ) : Navigator(fragmentManager, container) {
 
     private val mStack = DestinationStack()
 
     override val lastDestination: Destination? get() = mStack.last
-
-    private val Destination.requireFragment: Fragment
-        get() = fragment ?: error("Not found requireFragment $tag")
-
-    private val Destination.fragment: Fragment?
-        get() = fragmentManager.findFragmentByTag(tag)
-
-    private val String.tagId: Long?
-        get() = split(":").lastOrNull()?.toLong()
-
-    private val String.isSingle: Boolean
-        get() = split(":").let { it[it.size - 2] == "single" }
-
-    private val KClass<out Fragment>.tagId: Long?
-        get() = fragmentManager.fragments.findLast { (it.javaClass == this.java) && it.tag?.isSingle == true }?.tag?.tagId
 
     override fun navigate(kClass: KClass<out Fragment>, args: Bundle?, navOptions: NavOptions?) {
         transaction {
