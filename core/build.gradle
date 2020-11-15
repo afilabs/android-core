@@ -43,9 +43,9 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${versions.kotlin}"
+    implementation "androidx.core:core-ktx:${versions.core}"
 
     implementation "androidx.appcompat:appcompat:${versions.appcompat}"
-    implementation "androidx.core:core-ktx:${versions.core}"
     implementation "com.google.android.material:material:${versions.material}"
     api 'com.googlecode.libphonenumber:libphonenumber:8.12.6'
     implementation 'androidx.exifinterface:exifinterface:1.2.0'

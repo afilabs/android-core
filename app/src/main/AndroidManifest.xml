@@ -15,7 +15,7 @@
         android:supportsRtl="true"
         android:name=".MyApplication"
         android:theme="@style/AppTheme">
-        <activity android:name=".SplashActivity">
+        <activity android:name=".TestNavigationActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -25,6 +25,7 @@
         <activity android:name=".MainActivity" />
         <activity android:name=".TestActivity" />
         <activity android:name=".Test1Activity" />
+        <activity android:name=".navigation.BottomNavigationActivity" />
     </application>
 
 </manifest>

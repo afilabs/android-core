@@ -8,8 +8,8 @@ import kotlin.reflect.KClass
 class NavOptions(
         val popupTo: KClass<out Fragment>? = null,
         val inclusive: Boolean = false,
-        val singleTop: Boolean = false,
-        val singleInstance: Boolean = false,
+        val singleTask: Boolean = false,
+        val reuseInstance: Boolean = false,
 
         val animEnter: Int = 0,
         val animExit: Int = 0,
@@ -30,8 +30,8 @@ class NavOptions(
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeByte(if (inclusive) 1 else 0)
-        parcel.writeByte(if (singleTop) 1 else 0)
-        parcel.writeByte(if (singleInstance) 1 else 0)
+        parcel.writeByte(if (singleTask) 1 else 0)
+        parcel.writeByte(if (reuseInstance) 1 else 0)
         parcel.writeInt(animEnter)
         parcel.writeInt(animExit)
         parcel.writeInt(animPopEnter)
