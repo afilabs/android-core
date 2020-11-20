@@ -20,3 +20,15 @@ internal fun <T : ViewModel> ViewModelStore.getOrCreate(key: String, function: (
     }
     return viewModel
 }
+
+internal val ViewModelStore.keys get() = keys()
+
+internal fun ViewModelStore._get(key: String) = get(key)
+
+internal fun <T> ViewModel._setTagIfAbsent(key: String, newValue: T) {
+    setTagIfAbsent(key, newValue)
+}
+
+internal fun <T> ViewModel._getTag(key: String): T {
+    return getTag(key)
+}

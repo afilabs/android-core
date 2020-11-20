@@ -1,5 +1,6 @@
 package com.logistic.androidcore
 
+import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Intent
 import android.os.Bundle
@@ -38,8 +39,10 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
     private val permissionAccessible by lazyNone { PermissionAccessibleImpl(this) }
     private val testOpenCameraLiveData = MutableLiveData<Any>()
 
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        btnHelloWorld.text = "This is main activity"
 //       testLocalEvent()
         testOpenCamera()
 //        btnHelloWorld2.text = authRepo.name

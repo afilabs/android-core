@@ -4,6 +4,7 @@ import androidx.annotation.CallSuper
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.*
+import androidx.savedstate.SavedStateRegistryOwner
 import com.support.core.AppExecutors
 import com.support.core.ConcurrentContext
 import com.support.core.ConcurrentScope
@@ -13,9 +14,11 @@ import com.support.core.event.SingleLiveEvent
 import com.support.core.extension.LoadCacheLiveData
 import com.support.core.extension.doAsync
 import com.support.core.extension.post
+import com.support.core.factory.SavableViewModelFactory
 import com.support.core.factory.ViewModelFactory
 import com.support.core.functional.Form
 import com.support.core.functional.LocalStoreOwner
+import com.support.core.functional.SavedStateCreatable
 import com.support.core.isOnMainThread
 
 abstract class BaseViewModel : ViewModel() {
@@ -25,8 +28,6 @@ abstract class BaseViewModel : ViewModel() {
     val error = SingleLiveEvent<Throwable>()
     val loading = LoadingEvent()
     val viewLoading = LoadingEvent()
-
-    open fun onCreate() {}
 
     override fun onCleared() {
         super.onCleared()
@@ -138,7 +139,8 @@ interface ViewModelRegistrable : LocalStoreOwner {
     @CallSuper
     fun registry(viewModel: BaseViewModel) {
         var viewModelId = "registry:view:model:${viewModel.javaClass.name}"
-        if (this is ViewModelStoreOwner) viewModelId = "$viewModelId:shared:${viewModel.isShared(this)}"
+        if (this is ViewModelStoreOwner) viewModelId =
+                "$viewModelId:shared:${viewModel.isShared(this)}"
 
         if (!localStore.get(viewModelId) { false }) {
             onRegistryViewModel(viewModel)
@@ -158,25 +160,26 @@ inline fun <reified T : ViewModel> LocalStoreOwner.getViewModel(owner: ViewModel
 }
 
 inline fun <reified T : ViewModel> ViewModelStoreOwner.getViewModel(): T {
-    return ViewModelProvider(this, ViewModelFactory()).get<T>(T::class.java).also {
+    val viewModelClass = T::class.java
+    val factory = if (SavedStateCreatable::class.java.isAssignableFrom(viewModelClass)
+            && this is SavedStateRegistryOwner) SavableViewModelFactory(this)
+    else ViewModelFactory()
+
+    return ViewModelProvider(this, factory).get(viewModelClass).also {
         if (it is BaseViewModel && this is ViewModelRegistrable) registry(it)
     }
 }
 
 inline fun <reified T : ViewModel> AppCompatActivity.viewModel(): Lazy<T> =
-        lazy(LazyThreadSafetyMode.NONE) { getViewModel<T>() }
+        lazy(LazyThreadSafetyMode.NONE) { getViewModel() }
 
 
 inline fun <reified T : ViewModel> Fragment.viewModel(): Lazy<T> =
-        lazy(LazyThreadSafetyMode.NONE) { getViewModel<T>() }
+        lazy(LazyThreadSafetyMode.NONE) { getViewModel() }
 
 inline fun <reified T : ViewModel> Fragment.shareViewModel(): Lazy<T> =
-        lazy(LazyThreadSafetyMode.NONE) { requireActivity().getViewModel<T>() }
-
-@Deprecated("unused", ReplaceWith("lazy(LazyThreadSafetyMode.NONE) { function().getViewModel<T>() }"))
-inline fun <reified T : ViewModel> shareViewModel(crossinline function: () -> ViewModelStoreOwner): Lazy<T> =
-        lazy(LazyThreadSafetyMode.NONE) { function().getViewModel<T>() }
+        lazy(LazyThreadSafetyMode.NONE) { requireActivity().getViewModel() }
 
 inline fun <reified T : ViewModel> viewModel(crossinline function: () -> ViewModelStoreOwner): Lazy<T> =
-        lazy(LazyThreadSafetyMode.NONE) { function().getViewModel<T>() }
+        lazy(LazyThreadSafetyMode.NONE) { function().getViewModel() }
 

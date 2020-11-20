@@ -9,7 +9,7 @@ abstract class LifecycleViewModel : BaseViewModel(), LifecycleOwner {
 
     override fun getLifecycle(): Lifecycle = mRegistry
 
-    override fun onCreate() {
+    init {
         mRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         mRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
     }
