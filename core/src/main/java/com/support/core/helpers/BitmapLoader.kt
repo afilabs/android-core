@@ -7,12 +7,10 @@ import android.graphics.Matrix
 import android.net.Uri
 import android.os.Build
 import androidx.exifinterface.media.ExifInterface
-import com.support.core.Inject
 import java.io.File
 import java.io.FileNotFoundException
 
-@Inject(true)
-class FileBitmap(private val context: Context) {
+class BitmapLoader(private val context: Context) {
 
     fun isExists(uri: Uri): Boolean {
         return if (Build.VERSION.SDK_INT > 23) {
@@ -34,10 +32,10 @@ class FileBitmap(private val context: Context) {
             null
         } ?: try {
             val ims = context.contentResolver.openInputStream(uri)
-                ?: throw FileNotFoundException("File $uri not found")
+                    ?: throw FileNotFoundException("File $uri not found")
             BitmapFactory.decodeStream(ims)
         } catch (e: FileNotFoundException) {
-            throw e
+            throw FileNotFoundException("File $uri not found ${e.message}")
         }
 
         val exif: ExifInterface? = try {
@@ -51,8 +49,8 @@ class FileBitmap(private val context: Context) {
         }
 
         val orientation: Int = exif?.getAttributeInt(
-            ExifInterface.TAG_ORIENTATION,
-            ExifInterface.ORIENTATION_UNDEFINED
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_UNDEFINED
         ) ?: ExifInterface.ORIENTATION_NORMAL
 
         return when (orientation) {
@@ -69,8 +67,8 @@ class FileBitmap(private val context: Context) {
         val matrix = Matrix()
         matrix.postRotate(angle)
         return Bitmap.createBitmap(
-            source, 0, 0, source.width, source.height,
-            matrix, true
+                source, 0, 0, source.width, source.height,
+                matrix, true
         ).also { source.recycle() }
     }
 }

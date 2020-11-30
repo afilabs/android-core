@@ -11,7 +11,7 @@ import com.support.core.extension.tryCall
 import java.io.File
 import java.io.FileOutputStream
 
-class FileCache(private val context: Context, private val folderName: String) {
+class FileSaver(private val context: Context) {
     fun delete(path: String) {
         File(path).delete()
     }
@@ -20,12 +20,12 @@ class FileCache(private val context: Context, private val folderName: String) {
         tryCall { context.contentResolver.delete(uri, null, null) }
     }
 
-    fun saveToCache(it: Bitmap, quality: Int = 80): String {
+    fun saveToCache(it: Bitmap, folderName: String, quality: Int = 80): String {
         val folder = getOrCreateCache(folderName)
         return doSave(it, quality, folder)
     }
 
-    fun saveToGallery(it: Bitmap, quality: Int = 80): String {
+    fun saveToGallery(it: Bitmap, folderName: String, quality: Int = 80): String {
         val folder = getOrCreateExternal(folderName)
         return doSave(it, quality, folder)
     }
@@ -49,16 +49,17 @@ class FileCache(private val context: Context, private val folderName: String) {
 
     private fun refresh(folder: File) {
         MediaScannerConnection.scanFile(
-            context,
-            arrayOf(folder.path),
-            arrayOf("image/*")
+                context,
+                arrayOf(folder.path),
+                arrayOf("image/*")
         ) { _, _ -> }
     }
 
     private fun onCreateGalleryFolder(folderName: String): File {
         val folder = File("${context.cacheDir}/$folderName")
-        if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                == PermissionChecker.PERMISSION_GRANTED) {
+        val hasWriteStorage = ContextCompat.checkSelfPermission(context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PermissionChecker.PERMISSION_GRANTED
+
+        if (hasWriteStorage) {
             return try {
                 File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), folderName)
             } catch (e: Throwable) {
@@ -69,8 +70,9 @@ class FileCache(private val context: Context, private val folderName: String) {
     }
 
     private fun getOrCreateCache(folderName: String): File {
-        val folder = if (ContextCompat.checkSelfPermission(context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                == PermissionChecker.PERMISSION_GRANTED) File("${context.externalCacheDir}/$folderName")
+        val hasWritePermission = ContextCompat.checkSelfPermission(context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PermissionChecker.PERMISSION_GRANTED
+        val folder = if (hasWritePermission && context.externalCacheDir != null)
+            File("${context.externalCacheDir}/$folderName")
         else File("${context.cacheDir}/$folderName")
         folder.mkdirs()
         return folder

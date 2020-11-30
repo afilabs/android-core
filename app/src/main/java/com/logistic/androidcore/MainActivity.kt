@@ -15,9 +15,9 @@ import com.support.core.event.LocalEvent
 import com.support.core.extension.call
 import com.support.core.extension.lazyNone
 import com.support.core.extension.subscribe
-import com.support.core.helpers.FileBitmap
-import com.support.core.helpers.FileCache
-import com.support.core.helpers.FileScale
+import com.support.core.helpers.BitmapLoader
+import com.support.core.helpers.FileSaver
+import com.support.core.helpers.ImageScale
 import com.support.core.inject
 import com.support.core.open
 import kotlinx.android.synthetic.main.activity_main.*
@@ -28,13 +28,9 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
         val event = LocalEvent<Payload>()
     }
 
-    private val fileCache: FileCache by lazyNone { FileCache(this, "Test-Photos") }
+    private val fileCache: FileSaver by lazyNone { FileSaver(this) }
 
-    private val fileScale: FileScale by lazyNone {
-        FileScale(
-                fileCache, FileBitmap(this)
-        )
-    }
+    private val fileScale: ImageScale by lazyNone { ImageScale(BitmapLoader(this)) }
     private val authRepo: AuthRepository by inject()
     private val permissionAccessible by lazyNone { PermissionAccessibleImpl(this) }
     private val testOpenCameraLiveData = MutableLiveData<Any>()
@@ -79,7 +75,9 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
         Handler().postDelayed({
             resultLife.onActivitySuccessResult(100) { data ->
                 data?.data?.also {
-                    AppExecutors.diskIO.execute { fileScale.execute(it, true) }
+                    AppExecutors.diskIO.execute {
+                        fileCache.saveToCache(fileScale.scale(it), "test")
+                    }
                 }
             }
             btnHelloWorld.setOnClickListener {
@@ -110,7 +108,7 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
             try {
                 AppExecutors.diskIO.execute {
                     try {
-                        fileCache.delete(fileScale.execute(imageURI!!, true, true))
+                        fileCache.saveToCache(fileScale.scale(imageURI!!), "test")
                     } catch (e: Throwable) {
                         e.printStackTrace()
                     }
