@@ -63,7 +63,8 @@ interface PermissionAccessible {
 class PermissionSettingOptions(
         val titleDenied: String = "Permission denied",
         val messageDenied: String = "You need to allow permission to use this feature",
-        val positive: String = "Ok"
+        val positive: String = "Ok",
+        val cancelable: Boolean = true
 )
 
 class PermissionAccessibleImpl : PermissionAccessible {
@@ -287,7 +288,19 @@ abstract class PermissionRequest(
         }
     }
 
-    abstract fun request()
+    fun request() {
+        if (dispatcher.isFinishing) return
+        if (permissions.isEmpty()) throw RuntimeException("No permission to check")
+
+        if (isAllAllowed(*permissions)) {
+            onPermission(true)
+            return
+        }
+
+        doRequest()
+    }
+
+    protected abstract fun doRequest()
 
     override fun onClick(v: View?) {
         request()
@@ -322,7 +335,7 @@ abstract class PermissionRequest(
         }
     }
 
-    protected fun isAllAllowed(vararg permissions: String): Boolean {
+    private fun isAllAllowed(vararg permissions: String): Boolean {
         return permissions.all {
             ContextCompat.checkSelfPermission(
                     dispatcher.activity,
@@ -340,6 +353,7 @@ abstract class PermissionRequest(
                     .setPositiveButton(settingOptions.positive) { _: DialogInterface, _: Int ->
                         openSetting()
                     }
+                    .setCancelable(settingOptions.cancelable)
                     .create()
         }
         mOpenSettingDialog!!.show()
@@ -369,15 +383,7 @@ class PermissionRequestImpl(
 ) {
     override val checkAll: Boolean = true
 
-    override fun request() {
-        if (dispatcher.isFinishing) return
-        if (permissions.isEmpty()) throw RuntimeException("No permission to check")
-
-        if (isAllAllowed(*permissions)) {
-            onPermission(true)
-            return
-        }
-
+    override fun doRequest() {
         checkOrShowSetting()
     }
 }
@@ -397,14 +403,7 @@ class PermissionRequestAnyImpl(
 ) {
     override val checkAll: Boolean = false
 
-    override fun request() {
-        if (permissions.isEmpty()) throw RuntimeException("No permission to check")
-
-        if (isAllAllowed(*permissions)) {
-            onPermission(true)
-            return
-        }
-
+    override fun doRequest() {
         if (isAnyAllowed(*permissions)) {
             if (dispatcher.hasRecheck(permissions)) {
                 onPermission(true)
@@ -417,7 +416,6 @@ class PermissionRequestAnyImpl(
                 onPermission(true)
                 return
             }
-
         }
 
         checkOrShowSetting()

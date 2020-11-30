@@ -5,14 +5,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import androidx.annotation.IdRes
 import androidx.fragment.app.Fragment
 import com.support.core.base.BaseFragment
-import kotlin.reflect.KClass
+import com.support.core.functional.Backable
+import com.support.core.inject
 
-interface Backable {
-    fun onInterceptBackPress() = false
-}
 
 class NavHostFragment : BaseFragment(0), NavigationOwner, Backable {
     companion object {
@@ -26,10 +23,12 @@ class NavHostFragment : BaseFragment(0), NavigationOwner, Backable {
     override val navigator: Navigator
         get() = mNavigator ?: error("Navigator not init yet!")
 
+    private val factory: FragmentNavigatorFactory by inject()
+    private val containerId get() = arguments?.getInt(ID) ?: id
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        mNavigator = FragmentNavigator(childFragmentManager, args(ID) ?: id)
-        if (savedInstanceState != null) mNavigator?.onRestoreInstance(savedInstanceState)
+        mNavigator = factory.create(childFragmentManager, containerId)
     }
 
     override fun onCreateView(
@@ -37,7 +36,7 @@ class NavHostFragment : BaseFragment(0), NavigationOwner, Backable {
             container: ViewGroup?,
             savedInstanceState: Bundle?
     ): View? {
-        return FrameLayout(requireContext()).also { it.id = args(ID) ?: id }
+        return FrameLayout(requireContext()).also { it.id = containerId }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -57,21 +56,7 @@ class NavHostFragment : BaseFragment(0), NavigationOwner, Backable {
         )
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        mNavigator?.onSaveInstance(outState)
-    }
-
     override fun onInterceptBackPress(): Boolean {
         return mNavigator?.navigateUp() ?: false
     }
-}
-
-fun Navigator.navigateHost(@IdRes id: Int, kClass: KClass<out Fragment>, args: Bundle? = null, navOptions: NavOptions? = null) {
-    val bundle = Bundle()
-    bundle.putString(NavHostFragment.START_CLASS_NAME, kClass.java.name)
-    bundle.putInt(NavHostFragment.ID, id)
-    bundle.putParcelable(NavHostFragment.NAV_OPTION, navOptions)
-    bundle.putBundle(NavHostFragment.ARGUMENT, args)
-    navigate(NavHostFragment::class, bundle)
 }

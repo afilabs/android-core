@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <EditText
+        android:id="@+id/edtPopupTo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Popup To" />
+
+    <CheckBox
+        android:id="@+id/cbInclusive"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Inclusive" />
+
+    <CheckBox
+        android:id="@+id/cbReuseInstance"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Reuse instance" />
+
+    <CheckBox
+        android:id="@+id/cbSingleTask"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Single task" />
+
+    <Button
+        android:id="@+id/btnSetAsDefault"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Set as default" />
+</LinearLayout>
