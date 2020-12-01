@@ -3,21 +3,23 @@ package com.support.core
 import android.app.Application
 import android.content.Context
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.*
 import kotlin.reflect.KClass
 
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class Inject(
-    val singleton: Boolean = false
+        val singleton: Boolean = false
 )
 
 
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class InjectBy(
-    val clazz: KClass<out Injectable>,
-    val singleton: Boolean = false
+        val clazz: KClass<out Injectable>,
+        val singleton: Boolean = false
 )
 
 interface Injectable
@@ -36,8 +38,8 @@ interface Scope {
 }
 
 private open class SimpleBean<T>(
-    val isSingleton: Boolean,
-    val function: () -> T
+        val isSingleton: Boolean,
+        val function: () -> T
 ) : Bean<T> {
     private var mValue: T? = null
 
@@ -189,7 +191,7 @@ class DependenceContext : ProvideContext() {
     fun <T> lookup(clazz: Class<T>): Bean<T> {
         if (!mBean.containsKey(clazz)) {
             if (clazz.isAssignableFrom(Application::class.java)
-                || clazz.isAssignableFrom(Context::class.java)
+                    || clazz.isAssignableFrom(Context::class.java)
             ) return mApplication as Bean<T>
             reflectProvideIfNeeded(clazz)
         }
@@ -212,7 +214,7 @@ class DependenceContext : ProvideContext() {
 
     private fun <T> provideByInjectBy(clazz: Class<T>) {
         val annotation = clazz.getAnnotation(InjectBy::class.java)
-            ?: error("Not found provider for ${clazz.simpleName}")
+                ?: error("Not found provider for ${clazz.simpleName}")
         val byClazz = annotation.clazz.java
 
         if (annotation.singleton) single(clazz = clazz) {
@@ -258,13 +260,13 @@ class DependenceContext : ProvideContext() {
     @Suppress("unchecked_cast")
     fun <T> create(clazz: Class<T>): T {
         val constructor = clazz.constructors.firstOrNull()
-            ?: clazz.declaredConstructors.firstOrNull()
-            ?: error("Not found constructor for ${clazz.simpleName}")
+                ?: clazz.declaredConstructors.firstOrNull()
+                ?: error("Not found constructor for ${clazz.simpleName}")
 
         val paramTypes = constructor.genericParameterTypes
         return try {
             constructor.newInstance(*paramTypes.map { lookup(it as Class<*>).value }
-                .toTypedArray()) as T
+                    .toTypedArray()) as T
         } catch (e: Throwable) {
             Log.e("DependencyContext", "Error lookup for ${clazz.name}")
             throw e
@@ -274,8 +276,8 @@ class DependenceContext : ProvideContext() {
 }
 
 class Module(
-    private val context: DependenceContext,
-    private val provide: (DependenceContext) -> Unit
+        private val context: DependenceContext,
+        private val provide: (DependenceContext) -> Unit
 ) : ProvideContext() {
     private var mModules: Array<out Module>? = null
 
@@ -321,8 +323,95 @@ inline fun <reified T> inject() = lazy(LazyThreadSafetyMode.NONE) {
     dependenceContext.get(T::class.java)
 }
 
-inline fun <reified T> inject(scopeId: String) = lazy(LazyThreadSafetyMode.NONE) {
-    dependenceContext.get(scopeId, T::class.java)
+inline fun <reified T> FragmentActivity.inject(
+        scopeId: String,
+        anchor: Boolean = false
+) = object : Lazy<T> {
+    private var mValue: T? = null
+
+    init {
+        if (anchor) lifecycle.addObserver(object : LifecycleEventObserver {
+            override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+                if (event == Lifecycle.Event.ON_DESTROY) {
+                    if (!isChangingConfigurations) {
+                        dependenceContext.getScope(scopeId).dispose()
+                        mValue = null
+                    }
+                }
+            }
+        })
+    }
+
+    override val value: T
+        get() {
+            if (!isInitialized()) {
+                mValue = dependenceContext.get(scopeId, T::class.java)
+            }
+            return mValue!!
+        }
+
+    override fun isInitialized(): Boolean {
+        return mValue != null
+    }
+}
+
+class FragmentScopeViewModel : ViewModel() {
+    private val mScopeIds = hashMapOf<String, ArrayList<Disposable<*>>>()
+
+    fun push(scopeId: String, disposable: Disposable<*>) {
+        var disposables = mScopeIds[scopeId]
+        if (disposables == null) disposables = arrayListOf<Disposable<*>>().also { mScopeIds[scopeId] = it }
+        disposables.add(disposable)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        for ((scopeId, disposables) in mScopeIds) {
+            dependenceContext.getScope(scopeId).dispose()
+            for (disposable in disposables) {
+                disposable.dispose()
+            }
+        }
+        mScopeIds.clear()
+    }
+
+    interface Disposable<T> : Lazy<T> {
+        fun dispose()
+    }
+
+    companion object {
+        operator fun get(owner: ViewModelStoreOwner): FragmentScopeViewModel {
+            return ViewModelProvider(owner, ViewModelProvider.NewInstanceFactory())
+                    .get(FragmentScopeViewModel::class.java)
+        }
+    }
+}
+
+inline fun <reified T> Fragment.inject(
+        scopeId: String,
+        anchor: Boolean = false
+) = object : FragmentScopeViewModel.Disposable<T> {
+    private var mValue: T? = null
+    private var mViewModel = if (anchor) FragmentScopeViewModel[this@inject] else null
+
+    override val value: T
+        get() {
+            if (!isInitialized()) {
+                mValue = dependenceContext.get<T>(scopeId)
+                if (anchor && mViewModel == null) error("")
+                mViewModel?.push(scopeId, this)
+            }
+            return mValue!!
+        }
+
+    override fun isInitialized(): Boolean {
+        return mValue == null
+    }
+
+    override fun dispose() {
+        mValue = null
+        mViewModel = null
+    }
 }
 
 val dependenceContext = DependenceContext()

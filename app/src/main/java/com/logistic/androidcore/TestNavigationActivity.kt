@@ -16,20 +16,5 @@ class TestNavigationActivity : BaseActivity(R.layout.activity_test_navigation) {
         btnNavSingleInstance.setOnClickListener {
             open<NavigationSingleActivity>()
         }
-        btnNavReuseInstance.setOnClickListener {
-
-        }
-        btnNavPopupSingleInstance.setOnClickListener {
-
-        }
-        btnNavPopupReuse.setOnClickListener {
-
-        }
-        btnNavPopupSingleInstanceInclusive.setOnClickListener {
-
-        }
-        btnNavPopupReuseInclusive.setOnClickListener {
-
-        }
     }
 }

@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:gravity="center"
     android:orientation="vertical"
     tools:context=".TestNavigationActivity">
 
@@ -20,38 +21,4 @@
         android:text="Navigation with single instance"
         android:textAllCaps="false" />
 
-    <Button
-        android:id="@+id/btnNavReuseInstance"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Navigation with reuse instance"
-        android:textAllCaps="false" />
-
-    <Button
-        android:id="@+id/btnNavPopupSingleInstance"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Navigation with popup to with single instance"
-        android:textAllCaps="false" />
-
-    <Button
-        android:id="@+id/btnNavPopupReuse"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Navigation with popup to with reuse instance"
-        android:textAllCaps="false" />
-
-    <Button
-        android:id="@+id/btnNavPopupSingleInstanceInclusive"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Navigation with popup to with single instance,inclusive"
-        android:textAllCaps="false" />
-
-    <Button
-        android:id="@+id/btnNavPopupReuseInclusive"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Navigation with popup to with reuse instance, inclusive"
-        android:textAllCaps="false" />
 </LinearLayout>

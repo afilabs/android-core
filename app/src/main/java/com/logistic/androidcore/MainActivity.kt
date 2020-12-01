@@ -31,7 +31,7 @@ class MainActivity : BaseActivity(R.layout.activity_main) {
     private val fileCache: FileSaver by lazyNone { FileSaver(this) }
 
     private val fileScale: ImageScale by lazyNone { ImageScale(BitmapLoader(this)) }
-    private val authRepo: AuthRepository by inject()
+    private val authRepo: AuthRepository by inject("hello",true)
     private val permissionAccessible by lazyNone { PermissionAccessibleImpl(this) }
     private val testOpenCameraLiveData = MutableLiveData<Any>()
 
